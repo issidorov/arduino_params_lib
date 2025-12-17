@@ -88,65 +88,60 @@ public:
 };
 
 
-class XxxParamsList {
+template <uint8_t num>
+class XxxParamsCollection {
 private:
-    XxxParam** params;
-    uint8_t _count = 0;
+    XxxParam* params[num];
+    uint8_t count = 0;
 
 public:
-    XxxParamsList(uint8_t num) {
-        params = calloc(num, sizeof(XxxParam));
-    }
-
     void add(XxxParam* param) {
-        params[_count] = param;
-        ++_count;
+        params[count] = param;
+        ++count;
     }
 
-    uint8_t count() {
-        return _count;
+    bool notEmpty() {
+        return params[0];
     }
 
     void foreach(void (*fn)(XxxParam*)) {
         uint8_t i;
-        for (i = 0; i < _count; i++) {
+        for (i = 0; i < count; i++) {
             fn(params[i]);
         }
     }
 };
 
+
+template <uint8_t num>
 class XXX {
 private:
-    XxxParamsList* params;
+    XxxParamsCollection<num> params;
 
 public:
-    XXX(uint8_t num) {
-        params = new XxxParamsList(num);
-    }
-
     void appendParam(PGM_P name, int8_t* var) {
         XxxParam* param = new XxxParam_INT8(name, var);
-        params->add(param);
+        params.add(param);
     }
 
     void appendParam(PGM_P name, uint8_t* var) {
         XxxParam* param = new XxxParam_UINT8(name, var);
-        params->add(param);
+        params.add(param);
     }
 
     void appendParam(PGM_P name, int16_t* var) {
         XxxParam* param = new XxxParam_INT16(name, var);
-        params->add(param);
+        params.add(param);
     }
 
     void appendParam(PGM_P name, uint16_t* var) {
         XxxParam* param = new XxxParam_UINT16(name, var);
-        params->add(param);
+        params.add(param);
     }
 
     void appendParam(PGM_P name, String* var) {
         XxxParam* param = new XxxParam_STRING(name, var);
-        params->add(param);
+        params.add(param);
     }
 
     void update() {
@@ -159,8 +154,8 @@ public:
     }
 
     void cmdHelp() {
-        if (params->count() > 0) {
-            params->foreach([](XxxParam* param) {
+        if (params.notEmpty()) {
+            params.foreach([](XxxParam* param) {
                 Serial.print(FPSTR(param->name));
                 Serial.print(" ");
                 Serial.print(param->getValue());
@@ -173,7 +168,7 @@ public:
 };
 
 
-XXX myXxx(3);
+XXX<10> myXxx;
 
 
 void setup() {
