@@ -5,53 +5,148 @@ uint8_t ggg1 = 12;
 uint8_t ggg2 = 34;
 String ggg3 = "hello!";
 
-enum class XxxType {
-    INT8,
-    UINT8,
-    INT16,
-    UINT16,
-    STRING,
+
+class XxxParam {
+public:
+    PGM_P name;
+    virtual String getValue();
 };
 
-struct XxxParam {
-    PGM_P name;
-    XxxType type;
-    void* var;
+
+class XxxParam_INT8: public XxxParam {
+public:
+    int8_t* var;
+
+    XxxParam_INT8(PGM_P name, int8_t* var) {
+        this->name = name;
+        this->var = var;
+    }
+
+    String getValue() {
+        return String(*this->var);
+    }
+};
+
+
+class XxxParam_UINT8: public XxxParam {
+public:
+    uint8_t* var;
+
+    XxxParam_UINT8(PGM_P name, uint8_t* var) {
+        this->name = name;
+        this->var = var;
+    }
+
+    String getValue() {
+        return String(*this->var);
+    }
+};
+
+
+class XxxParam_INT16: public XxxParam {
+public:
+    int16_t* var;
+
+    XxxParam_INT16(PGM_P name, int16_t* var) {
+        this->name = name;
+        this->var = var;
+    }
+
+    String getValue() {
+        return String(*this->var);
+    }
+};
+
+
+class XxxParam_UINT16: public XxxParam {
+public:
+    uint16_t* var;
+
+    XxxParam_UINT16(PGM_P name, uint16_t* var) {
+        this->name = name;
+        this->var = var;
+    }
+
+    String getValue() {
+        return String(*this->var);
+    }
+};
+
+
+class XxxParam_STRING: public XxxParam {
+public:
+    String* var;
+
+    XxxParam_STRING(PGM_P name, String* var) {
+        this->name = name;
+        this->var = var;
+    }
+
+    String getValue() {
+        return *this->var;
+    }
+};
+
+
+class XxxParamsList {
+private:
+    XxxParam** params;
+    uint8_t _count = 0;
+
+public:
+    XxxParamsList(uint8_t num) {
+        params = calloc(num, sizeof(XxxParam));
+    }
+
+    void add(XxxParam* param) {
+        params[_count] = param;
+        ++_count;
+    }
+
+    uint8_t count() {
+        return _count;
+    }
+
+    void foreach(void (*fn)(XxxParam*)) {
+        uint8_t i;
+        for (i = 0; i < _count; i++) {
+            fn(params[i]);
+        }
+    }
 };
 
 class XXX {
 private:
-    XxxParam* params[10] = {};
-    uint8_t paramsCount = 0;
+    XxxParamsList* params;
 
 public:
+    XXX(uint8_t num) {
+        params = new XxxParamsList(num);
+    }
+
     void appendParam(PGM_P name, int8_t* var) {
-        doAppendParam(name, XxxType::INT8, var);
+        XxxParam* param = new XxxParam_INT8(name, var);
+        params->add(param);
     }
 
     void appendParam(PGM_P name, uint8_t* var) {
-        doAppendParam(name, XxxType::UINT8, var);
+        XxxParam* param = new XxxParam_UINT8(name, var);
+        params->add(param);
     }
 
     void appendParam(PGM_P name, int16_t* var) {
-        doAppendParam(name, XxxType::INT16, var);
+        XxxParam* param = new XxxParam_INT16(name, var);
+        params->add(param);
     }
 
     void appendParam(PGM_P name, uint16_t* var) {
-        doAppendParam(name, XxxType::UINT16, var);
+        XxxParam* param = new XxxParam_UINT16(name, var);
+        params->add(param);
     }
 
     void appendParam(PGM_P name, String* var) {
-        doAppendParam(name, XxxType::STRING, var);
-    }
-
-    void doAppendParam(PGM_P name, XxxType type, void* var) {
-        auto param = new XxxParam();
-        param->name = name;
-        param->type = type;
-        param->var = var;
-        params[paramsCount] = param;
-        ++paramsCount;
+        XxxParam* param = new XxxParam_STRING(name, var);
+        params->add(param);
     }
 
     void update() {
@@ -64,37 +159,21 @@ public:
     }
 
     void cmdHelp() {
-        if (params[0]) {
-            for (uint8_t i = 0; params[i]; i++) {
-                XxxParam* param = params[i];
+        if (params->count() > 0) {
+            params->foreach([](XxxParam* param) {
                 Serial.print(FPSTR(param->name));
                 Serial.print(" ");
-                Serial.print(getParamValue(param));
+                Serial.print(param->getValue());
                 Serial.println();
-            }
+            });
         } else {
             Serial.println(F("Hello"));
-        }
-    }
-
-    String getParamValue(XxxParam* param) {
-        switch (param->type) {
-            case XxxType::INT8:
-                return String(*(int8_t*)param->var);
-            case XxxType::UINT8:
-                return String(*(uint8_t*)param->var);
-            case XxxType::INT16:
-                return String(*(int16_t*)param->var);
-            case XxxType::UINT16:
-                return String(*(uint16_t*)param->var);
-            case XxxType::STRING:
-                return String(*(String*)param->var);
         }
     }
 };
 
 
-XXX myXxx;
+XXX myXxx(3);
 
 
 void setup() {
