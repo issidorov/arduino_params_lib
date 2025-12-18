@@ -54,14 +54,47 @@ constexpr XxxParam buildXxxParam(PGM_P name, String* var) {
 }
 
 
+typedef XxxParam* FnParamsGetter(uint8_t index);
+
+
+class XxxParamsIterrator {
+protected:
+    uint8_t index = 0;
+    FnParamsGetter* paramsGetter;
+public:
+    void setParamsGetter(FnParamsGetter* getter) {
+        paramsGetter = getter;
+    }
+
+    XxxParam* next() {
+        XxxParam* param = paramsGetter(index);
+        if (!param) {
+            return nullptr;
+        }
+        ++index;
+        return param;
+    }
+
+    void reset() {
+        index = 0;
+    }
+};
+
+
+void printParam(const XxxParam& param) {
+    Serial.print(FPSTR(param.name));
+    Serial.print(" ");
+    Serial.print(param.getValue(param.var));
+    Serial.println();
+}
 
 class XXX {
 private:
-    const XxxParam** params;
+    XxxParamsIterrator params;
 
 public:
-    XXX(const XxxParam** params) {
-        this->params = params;
+    XXX(FnParamsGetter* paramsGetter) {
+        params.setParamsGetter(paramsGetter);
     }
 
     void update() {
@@ -74,56 +107,51 @@ public:
     }
 
     void cmdParams() {
-        uint8_t i;
-        XxxParam param;
-        for (i = 0; ; ++i) {
-            XxxParam* param_p = pgm_read_ptr(&params[i]);
-            if (!param_p) break;
-            memcpy_P(&param, param_p, sizeof(XxxParam));
-            printParam(param);
+        XxxParam* param;
+        params.reset();
+        while(param = params.next()) {
+            printParam(*param);
         }
-        if (!i) {
-            Serial.println(F("Not has params!"));
-        }
-    }
-
-    void printParam(const XxxParam& param) {
-        Serial.print(FPSTR(param.name));
-        Serial.print(" ");
-        Serial.print(param.getValue(param.var));
-        Serial.println();
     }
 };
 
 
 
-#define XXX_PARAM(var) \
-    const char var ## _name[] PROGMEM = #var; \
-    const XxxParam var ## _param PROGMEM = buildXxxParam(var ## _name, &var); \
+#define BEGIN_PARAMS(fn_name) \
+                                    XxxParam* fn_name(uint8_t index) { \
+                                        const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
+                                        static XxxParam param; \
+                                        switch (index) {
+#define PARAM(var) \
+                                            case (__COUNTER__ - COUNTER_BASE): \
+                                                param = buildXxxParam(PSTR(#var), &var); \
+                                                break;
+#define END_PARAMS() \
+                                            default: \
+                                                return nullptr; \
+                                        } \
+                                        return &param; \
+                                    };
 
-XXX_PARAM(ggg1);
-XXX_PARAM(ggg2);
-XXX_PARAM(ggg3);
 
-const XxxParam* const params_X[] PROGMEM = {
-    &ggg1_param,
-    &ggg2_param,
-    &ggg3_param,
-    nullptr,
-};
 
-XXX myXxx(params_X);
 
+
+BEGIN_PARAMS(paramsStore)
+    PARAM(ggg1)
+    PARAM(ggg2)
+    PARAM(ggg3)
+END_PARAMS()
+
+
+XXX myXxx(&paramsStore);
 
 void setup() {
     Serial.begin(9600);
 }
 
-
 void loop() {
     myXxx.update();
 }
-
-
 
 
