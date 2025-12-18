@@ -97,15 +97,13 @@ public:
 
 
 
+#define XXX_PARAM(var) \
+    const char var ## _name[] PROGMEM = #var; \
+    const XxxParam var ## _param PROGMEM = buildXxxParam(var ## _name, &var); \
 
-const char ggg1_name[] PROGMEM = "ggg1";
-const XxxParam ggg1_param PROGMEM = buildXxxParam(ggg1_name, &ggg1);
-
-const char ggg2_name[] PROGMEM = "ggg2";
-const XxxParam ggg2_param PROGMEM = buildXxxParam(ggg2_name, &ggg2);
-
-const char ggg3_name[] PROGMEM = "ggg3";
-const XxxParam ggg3_param PROGMEM = buildXxxParam(ggg3_name, &ggg3);
+XXX_PARAM(ggg1);
+XXX_PARAM(ggg2);
+XXX_PARAM(ggg3);
 
 const XxxParam* const params_X[] PROGMEM = {
     &ggg1_param,
