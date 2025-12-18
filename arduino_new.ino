@@ -54,7 +54,7 @@ constexpr XxxParam buildXxxParam(PGM_P name, String* var) {
 }
 
 
-typedef XxxParam* FnParamsGetter(uint8_t index);
+typedef XxxParam FnParamsGetter(uint8_t index);
 
 
 class XxxParamsIterrator {
@@ -66,13 +66,8 @@ public:
         paramsGetter = getter;
     }
 
-    XxxParam* next() {
-        XxxParam* param = paramsGetter(index);
-        if (!param) {
-            return nullptr;
-        }
-        ++index;
-        return param;
+    XxxParam next() {
+        return paramsGetter(index++);
     }
 
     void reset() {
@@ -107,30 +102,24 @@ public:
     }
 
     void cmdParams() {
-        XxxParam* param;
         params.reset();
-        while(param = params.next()) {
-            printParam(*param);
-        }
+        printParam(params.next());
+        printParam(params.next());
+        printParam(params.next());
     }
 };
 
 
 
 #define BEGIN_PARAMS(fn_name) \
-                                    XxxParam* fn_name(uint8_t index) { \
+                                    XxxParam fn_name(uint8_t index) { \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
-                                        static XxxParam param; \
                                         switch (index) {
 #define PARAM(var) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                param = buildXxxParam(PSTR(#var), &var); \
-                                                break;
+                                                return buildXxxParam(PSTR(#var), &var);
 #define END_PARAMS() \
-                                            default: \
-                                                return nullptr; \
                                         } \
-                                        return &param; \
                                     };
 
 
