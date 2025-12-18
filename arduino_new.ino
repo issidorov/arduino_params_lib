@@ -151,6 +151,10 @@ void setup() {
 }
 
 void loop() {
+    // Serial.println(ggg1);
+    // Serial.println(ggg2);
+    // Serial.println(ggg3);
+    // delay(3000);
     myXxx.update();
 }
 
