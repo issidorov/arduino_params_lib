@@ -67,13 +67,13 @@ public:
     void update() {
         if (Serial.available()) {
             String line = Serial.readStringUntil('\n');
-            if (strcmp_P(line.c_str(), PSTR("help")) == 0) {
-                cmdHelp();
+            if (strcmp_P(line.c_str(), PSTR("params")) == 0) {
+                cmdParams();
             }
         }
     }
 
-    void cmdHelp() {
+    void cmdParams() {
         uint8_t i;
         XxxParam param;
         for (i = 0; ; ++i) {
