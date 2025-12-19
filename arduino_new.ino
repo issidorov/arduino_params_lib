@@ -18,7 +18,7 @@ struct XxxParam {
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(int8_t&) {
+constexpr FnValueGetter* findValueGetter(const int8_t&) {
     return getValue_INT8;
 }
 
@@ -26,7 +26,7 @@ constexpr FnValueGetter* findValueGetter(int8_t&) {
 String getValue_UINT8(void* var) {
     return String(*(uint8_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(uint8_t&) {
+constexpr FnValueGetter* findValueGetter(const uint8_t&) {
     return getValue_UINT8;
 }
 
@@ -34,7 +34,7 @@ constexpr FnValueGetter* findValueGetter(uint8_t&) {
 String getValue_INT16(void* var) {
     return String(*(int16_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(int16_t&) {
+constexpr FnValueGetter* findValueGetter(const int16_t&) {
     return getValue_INT16;
 }
 
@@ -42,7 +42,7 @@ constexpr FnValueGetter* findValueGetter(int16_t&) {
 String getValue_UINT16(void* var) {
     return String(*(uint16_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(uint16_t&) {
+constexpr FnValueGetter* findValueGetter(const uint16_t&) {
     return getValue_UINT16;
 }
 
@@ -50,7 +50,7 @@ constexpr FnValueGetter* findValueGetter(uint16_t&) {
 String getValue_STRING(void* var) {
     return String(*(String*)var);
 }
-constexpr FnValueGetter* findValueGetter(String&) {
+constexpr FnValueGetter* findValueGetter(const String&) {
     return getValue_STRING;
 }
 
