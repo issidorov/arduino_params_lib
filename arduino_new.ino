@@ -83,8 +83,15 @@ void printParam(const XxxParam& param) {
     Serial.println();
 }
 
-class XXX {
-public:
+void cmdParams() {
+    XxxParamsIterrator itter(XxxParamsStore);
+    XxxParam buf;
+    while (itter.next(&buf)) {
+        printParam(buf);
+    }
+}
+
+struct XxxMethods {
     void update() {
         if (Serial.available()) {
             String line = Serial.readStringUntil('\n');
@@ -93,16 +100,9 @@ public:
             }
         }
     }
-
-    void cmdParams() {
-        XxxParamsIterrator itter(XxxParamsStore);
-        XxxParam buf;
-        while (itter.next(&buf)) {
-            printParam(buf);
-        }
-    }
 };
 
+XxxMethods XXX;
 
 
 #define BEGIN_PARAMS() \
@@ -134,9 +134,6 @@ BEGIN_PARAMS()
     PARAM(ggg3)
 END_PARAMS()
 
-
-XXX myXxx;
-
 void setup() {
     Serial.begin(9600);
 }
@@ -146,7 +143,7 @@ void loop() {
     // Serial.println(ggg2);
     // Serial.println(ggg3);
     // delay(3000);
-    myXxx.update();
+    XXX.update();
 }
 
 
