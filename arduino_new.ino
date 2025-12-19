@@ -76,33 +76,35 @@ public:
 };
 
 
-void printParam(const XxxParam& param) {
-    Serial.print(FPSTR(param.name));
-    Serial.print(" ");
-    Serial.print(param.getValue(param.var));
-    Serial.println();
-}
-
-void cmdParams() {
-    XxxParamsIterrator itter(XxxParamsStore);
-    XxxParam buf;
-    while (itter.next(&buf)) {
-        printParam(buf);
+struct CmdParams {
+    void run() {
+        XxxParamsIterrator itter(XxxParamsStore);
+        XxxParam buf;
+        while (itter.next(&buf)) {
+            printParam(buf);
+        }
     }
-}
 
-struct XxxMethods {
+private:
+    void printParam(const XxxParam& param) {
+        Serial.print(FPSTR(param.name));
+        Serial.print(" ");
+        Serial.print(param.getValue(param.var));
+        Serial.println();
+    }
+} CmdParams;
+
+
+struct XXX {
     void update() {
         if (Serial.available()) {
             String line = Serial.readStringUntil('\n');
             if (strcmp_P(line.c_str(), PSTR("params")) == 0) {
-                cmdParams();
+                CmdParams.run();
             }
         }
     }
-};
-
-XxxMethods XXX;
+} XXX;
 
 
 #define BEGIN_PARAMS() \
