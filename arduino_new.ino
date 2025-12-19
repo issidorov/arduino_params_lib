@@ -17,7 +17,7 @@ struct XxxParam {
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
 }
-constexpr XxxParam buildXxxParam(PGM_P name, int8_t* var) {
+XxxParam buildXxxParam(PGM_P name, int8_t* var) {
     return {name, var, getValue_INT8};
 }
 
@@ -25,7 +25,7 @@ constexpr XxxParam buildXxxParam(PGM_P name, int8_t* var) {
 String getValue_UINT8(void* var) {
     return String(*(uint8_t*)var);
 }
-constexpr XxxParam buildXxxParam(PGM_P name, uint8_t* var) {
+XxxParam buildXxxParam(PGM_P name, uint8_t* var) {
     return {name, var, getValue_UINT8};
 }
 
@@ -33,7 +33,7 @@ constexpr XxxParam buildXxxParam(PGM_P name, uint8_t* var) {
 String getValue_INT16(void* var) {
     return String(*(int16_t*)var);
 }
-constexpr XxxParam buildXxxParam(PGM_P name, int16_t* var) {
+XxxParam buildXxxParam(PGM_P name, int16_t* var) {
     return {name, var, getValue_INT16};
 }
 
@@ -41,7 +41,7 @@ constexpr XxxParam buildXxxParam(PGM_P name, int16_t* var) {
 String getValue_UINT16(void* var) {
     return String(*(uint16_t*)var);
 }
-constexpr XxxParam buildXxxParam(PGM_P name, uint16_t* var) {
+XxxParam buildXxxParam(PGM_P name, uint16_t* var) {
     return {name, var, getValue_UINT16};
 }
 
