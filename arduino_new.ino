@@ -76,7 +76,8 @@ public:
 };
 
 
-struct CmdParams {
+class CmdParams {
+public:
     void run() {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam buf;
@@ -92,15 +93,17 @@ private:
         Serial.print(param.getValue(param.var));
         Serial.println();
     }
-} CmdParams;
+};
 
 
-struct XXX {
+class XXX {
+public:
     void update() {
         if (Serial.available()) {
             String line = Serial.readStringUntil('\n');
             if (strcmp_P(line.c_str(), PSTR("params")) == 0) {
-                CmdParams.run();
+                CmdParams cmd;
+                cmd.run();
             }
         }
     }
