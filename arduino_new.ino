@@ -143,7 +143,7 @@ BEGIN_PARAMS(paramsStore)
 END_PARAMS()
 
 
-XXX myXxx(&paramsStore);
+XXX myXxx(paramsStore);
 
 void setup() {
     Serial.begin(9600);
