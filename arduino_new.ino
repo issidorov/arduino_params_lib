@@ -63,9 +63,7 @@ protected:
     uint8_t index = 0;
     FnParamsGetter* paramsGetter;
 public:
-    void setParamsGetter(FnParamsGetter* getter) {
-        paramsGetter = getter;
-    }
+    XxxParamsIterrator(FnParamsGetter* paramsGetter) : paramsGetter(paramsGetter) {}
 
     bool next(XxxParam* buf) {
         return paramsGetter(buf, index++);
@@ -86,12 +84,10 @@ void printParam(const XxxParam& param) {
 
 class XXX {
 private:
-    XxxParamsIterrator params;
+    FnParamsGetter* paramsGetter;
 
 public:
-    XXX(FnParamsGetter* paramsGetter) {
-        params.setParamsGetter(paramsGetter);
-    }
+    XXX(FnParamsGetter* paramsGetter) : paramsGetter(paramsGetter) {}
 
     void update() {
         if (Serial.available()) {
@@ -103,9 +99,9 @@ public:
     }
 
     void cmdParams() {
+        XxxParamsIterrator itter(paramsGetter);
         XxxParam buf;
-        params.reset();
-        while (params.next(&buf)) {
+        while (itter.next(&buf)) {
             printParam(buf);
         }
     }
