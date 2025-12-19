@@ -14,6 +14,7 @@ struct XxxParam {
     FnValueGetter* getValue;
 };
 
+bool XxxParamsStore(XxxParam* buf, uint8_t index);
 
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
@@ -83,12 +84,7 @@ void printParam(const XxxParam& param) {
 }
 
 class XXX {
-private:
-    FnParamsGetter* paramsGetter;
-
 public:
-    XXX(FnParamsGetter* paramsGetter) : paramsGetter(paramsGetter) {}
-
     void update() {
         if (Serial.available()) {
             String line = Serial.readStringUntil('\n');
@@ -99,7 +95,7 @@ public:
     }
 
     void cmdParams() {
-        XxxParamsIterrator itter(paramsGetter);
+        XxxParamsIterrator itter(XxxParamsStore);
         XxxParam buf;
         while (itter.next(&buf)) {
             printParam(buf);
@@ -109,8 +105,8 @@ public:
 
 
 
-#define BEGIN_PARAMS(fn_name) \
-                                    bool fn_name(XxxParam* buf, uint8_t index) { \
+#define BEGIN_PARAMS() \
+                                    bool XxxParamsStore(XxxParam* buf, uint8_t index) { \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
                                         switch (index) {
 #define PARAM(var_name) \
@@ -132,14 +128,14 @@ public:
 
 
 
-BEGIN_PARAMS(paramsStore)
+BEGIN_PARAMS()
     PARAM(ggg1)
     PARAM(ggg2)
     PARAM(ggg3)
 END_PARAMS()
 
 
-XXX myXxx(paramsStore);
+XXX myXxx;
 
 void setup() {
     Serial.begin(9600);
