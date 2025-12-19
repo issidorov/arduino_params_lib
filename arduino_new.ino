@@ -6,55 +6,56 @@ uint8_t ggg2 = 34;
 String ggg3 = "hello!";
 
 
+typedef String FnValueGetter(void* var);
 
 struct XxxParam {
     PGM_P name;
     void* var;
-    String (*getValue)(void* var);
+    FnValueGetter* getValue;
 };
 
 
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
 }
-XxxParam buildXxxParam(PGM_P name, int8_t* var) {
-    return {name, var, getValue_INT8};
+constexpr FnValueGetter* findValueGetter(int8_t&) {
+    return getValue_INT8;
 }
 
 
 String getValue_UINT8(void* var) {
     return String(*(uint8_t*)var);
 }
-XxxParam buildXxxParam(PGM_P name, uint8_t* var) {
-    return {name, var, getValue_UINT8};
+constexpr FnValueGetter* findValueGetter(uint8_t&) {
+    return getValue_UINT8;
 }
 
 
 String getValue_INT16(void* var) {
     return String(*(int16_t*)var);
 }
-XxxParam buildXxxParam(PGM_P name, int16_t* var) {
-    return {name, var, getValue_INT16};
+constexpr FnValueGetter* findValueGetter(int16_t&) {
+    return getValue_INT16;
 }
 
 
 String getValue_UINT16(void* var) {
     return String(*(uint16_t*)var);
 }
-XxxParam buildXxxParam(PGM_P name, uint16_t* var) {
-    return {name, var, getValue_UINT16};
+constexpr FnValueGetter* findValueGetter(uint16_t&) {
+    return getValue_UINT16;
 }
 
 
 String getValue_STRING(void* var) {
     return String(*(String*)var);
 }
-constexpr XxxParam buildXxxParam(PGM_P name, String* var) {
-    return {name, var, getValue_STRING};
+constexpr FnValueGetter* findValueGetter(String&) {
+    return getValue_STRING;
 }
 
 
-typedef XxxParam FnParamsGetter(uint8_t index);
+typedef bool FnParamsGetter(XxxParam* buf, uint8_t index);
 
 
 class XxxParamsIterrator {
@@ -66,8 +67,8 @@ public:
         paramsGetter = getter;
     }
 
-    XxxParam next() {
-        return paramsGetter(index++);
+    bool next(XxxParam* buf) {
+        return paramsGetter(buf, index++);
     }
 
     void reset() {
@@ -102,25 +103,34 @@ public:
     }
 
     void cmdParams() {
+        XxxParam buf;
         params.reset();
-        printParam(params.next());
-        printParam(params.next());
-        printParam(params.next());
+        while (params.next(&buf)) {
+            printParam(buf);
+        }
     }
 };
 
 
 
 #define BEGIN_PARAMS(fn_name) \
-                                    XxxParam fn_name(uint8_t index) { \
+                                    bool fn_name(XxxParam* buf, uint8_t index) { \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
                                         switch (index) {
-#define PARAM(var) \
+#define PARAM(var_name) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                return buildXxxParam(PSTR(#var), &var);
+                                                *buf = { \
+                                                    PSTR(#var_name), \
+                                                    &var_name, \
+                                                    findValueGetter(var_name), \
+                                                }; \
+                                                break;
 #define END_PARAMS() \
+                                            default: \
+                                                return false; \
                                         } \
-                                    };
+                                        return true; \
+                                    }
 
 
 
