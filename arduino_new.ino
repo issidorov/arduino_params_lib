@@ -96,15 +96,39 @@ private:
 };
 
 
+class CmdSetParam {
+public:
+    void run(char* paramName, char* newParamValue) {
+        Serial.print(F("name="));
+        Serial.print(paramName);
+        Serial.print(F("   "));
+        Serial.print(F("value="));
+        Serial.print(newParamValue);
+        Serial.println();
+    }
+};
+
+
 class XXX {
 public:
     void update() {
         if (Serial.available()) {
-            String line = Serial.readStringUntil('\n');
-            if (strcmp_P(line.c_str(), PSTR("params")) == 0) {
-                CmdParams cmd;
-                cmd.run();
+            char* line = strdup(Serial.readStringUntil('\n').c_str());
+            char* p = strpbrk_P(line, PSTR("= "));
+            if (p[0] == '=') {
+                p[0] = NULL;
+                char* paramName = line;
+                char* newParamValue = &p[1];
+
+                CmdSetParam cmd;
+                cmd.run(paramName, newParamValue);
+            } else {
+                if (strcmp_P(line, PSTR("params")) == 0) {
+                    CmdParams cmd;
+                    cmd.run();
+                }
             }
+            free(line);
         }
     }
 } XXX;
