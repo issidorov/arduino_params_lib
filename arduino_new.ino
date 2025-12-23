@@ -7,11 +7,13 @@ String ggg3 = "hello!";
 
 
 typedef String FnValueGetter(void* var);
+typedef void FnValueSetter(void* var, const char* value);
 
 struct XxxParam {
     PGM_P name;
     void* var;
     FnValueGetter* getValue;
+    FnValueSetter* setValue;
 };
 
 bool XxxParamsStore(XxxParam* buf, uint8_t index);
@@ -19,40 +21,60 @@ bool XxxParamsStore(XxxParam* buf, uint8_t index);
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(const int8_t&) {
-    return getValue_INT8;
+void setValue_INT8(int8_t* var, const char* value) {
+    *var = atoi(value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const int8_t&) {
+    param->getValue = getValue_INT8;
+    param->setValue = setValue_INT8;
 }
 
 
 String getValue_UINT8(void* var) {
     return String(*(uint8_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(const uint8_t&) {
-    return getValue_UINT8;
+void setValue_UINT8(uint8_t* var, const char* value) {
+    *var = atoi(value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const uint8_t&) {
+    param->getValue = getValue_UINT8;
+    param->setValue = setValue_UINT8;
 }
 
 
 String getValue_INT16(void* var) {
     return String(*(int16_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(const int16_t&) {
-    return getValue_INT16;
+void setValue_INT16(int16_t* var, const char* value) {
+    *var = atol(value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const int16_t&) {
+    param->getValue = getValue_INT16;
+    param->setValue = setValue_INT16;
 }
 
 
 String getValue_UINT16(void* var) {
     return String(*(uint16_t*)var);
 }
-constexpr FnValueGetter* findValueGetter(const uint16_t&) {
-    return getValue_UINT16;
+void setValue_UINT16(uint16_t* var, const char* value) {
+    *var = atol(value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const uint16_t&) {
+    param->getValue = getValue_UINT16;
+    param->setValue = setValue_UINT16;
 }
 
 
 String getValue_STRING(void* var) {
     return String(*(String*)var);
 }
-constexpr FnValueGetter* findValueGetter(const String&) {
-    return getValue_STRING;
+void setValue_STRING(String* var, const char* value) {
+    *var = value;
+}
+void XxxParam_fillHandlers(XxxParam* param, const String&) {
+    param->getValue = getValue_STRING;
+    param->setValue = setValue_STRING;
 }
 
 
@@ -105,6 +127,16 @@ public:
         Serial.print(F("value="));
         Serial.print(newParamValue);
         Serial.println();
+        
+        XxxParamsIterrator itter(XxxParamsStore);
+        XxxParam param;
+        while (itter.next(&param)) {
+            if (strcmp_P(paramName, param.name) == 0) {
+                param.setValue(param.var, newParamValue);
+                Serial.println(F("OK"));
+                break;
+            }
+        }
     }
 };
 
@@ -140,11 +172,9 @@ public:
                                         switch (index) {
 #define PARAM(var_name) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                *buf = { \
-                                                    PSTR(#var_name), \
-                                                    &var_name, \
-                                                    findValueGetter(var_name), \
-                                                }; \
+                                                buf->name = PSTR(#var_name); \
+                                                buf->var = &var_name; \
+                                                XxxParam_fillHandlers(buf, var_name); \
                                                 break;
 #define END_PARAMS() \
                                             default: \
