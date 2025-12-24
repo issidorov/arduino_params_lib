@@ -1,3 +1,4 @@
+#include <EEPROM.h>
 
 #define FPSTR(s) (const __FlashStringHelper*)(s)
 
@@ -8,15 +9,40 @@ String ggg3 = "hello!";
 
 typedef String FnValueGetter(void* var);
 typedef void FnValueSetter(void* var, const char* value);
+typedef size_t FnValueLoad(unsigned int addr, void* var);
+typedef size_t FnValueSave(unsigned int addr, const void* var);
 
 struct XxxParam {
     PGM_P name;
     void* var;
     FnValueGetter* getValue;
     FnValueSetter* setValue;
+    FnValueLoad* loadValue;
+    FnValueSave* saveValue;
 };
 
 bool XxxParamsStore(XxxParam* buf, uint8_t index);
+
+
+template< typename T >
+size_t EEPROM_get( unsigned int addr, T* value ) {
+    unsigned int i;
+    for( i = 0 ; i < sizeof(T) ; ++i ) {
+        *(value + i) = EEPROM.read(addr + i);
+    }
+    return sizeof(T);
+}
+
+template< typename T >
+size_t EEPROM_put( unsigned int addr, const T* value ) {
+    unsigned int i, e;
+    for( i = 0 ; i < sizeof(T) ; ++i ) {
+        EEPROM.write(addr + i, *(value + i));
+    }
+    return sizeof(T);
+}
+
+
 
 String getValue_INT8(void* var) {
     return String(*(int8_t*)var);
@@ -24,9 +50,17 @@ String getValue_INT8(void* var) {
 void setValue_INT8(int8_t* var, const char* value) {
     *var = atoi(value);
 }
+size_t loadValue_INT8(unsigned int addr, int8_t *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_INT8(unsigned int addr, const int8_t *value) {
+    return EEPROM_put(addr, value);
+}
 void XxxParam_fillHandlers(XxxParam* param, const int8_t&) {
     param->getValue = getValue_INT8;
     param->setValue = setValue_INT8;
+    param->loadValue = loadValue_INT8;
+    param->saveValue = saveValue_INT8;
 }
 
 
@@ -36,9 +70,17 @@ String getValue_UINT8(void* var) {
 void setValue_UINT8(uint8_t* var, const char* value) {
     *var = atoi(value);
 }
+size_t loadValue_UINT8(unsigned int addr, uint8_t *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_UINT8(unsigned int addr, const uint8_t *value) {
+    return EEPROM_put(addr, value);
+}
 void XxxParam_fillHandlers(XxxParam* param, const uint8_t&) {
     param->getValue = getValue_UINT8;
     param->setValue = setValue_UINT8;
+    param->loadValue = loadValue_UINT8;
+    param->saveValue = saveValue_UINT8;
 }
 
 
@@ -48,9 +90,17 @@ String getValue_INT16(void* var) {
 void setValue_INT16(int16_t* var, const char* value) {
     *var = atol(value);
 }
+size_t loadValue_INT16(unsigned int addr, int16_t *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_INT16(unsigned int addr, const int16_t *value) {
+    return EEPROM_put(addr, value);
+}
 void XxxParam_fillHandlers(XxxParam* param, const int16_t&) {
     param->getValue = getValue_INT16;
     param->setValue = setValue_INT16;
+    param->loadValue = loadValue_INT16;
+    param->saveValue = saveValue_INT16;
 }
 
 
@@ -60,9 +110,17 @@ String getValue_UINT16(void* var) {
 void setValue_UINT16(uint16_t* var, const char* value) {
     *var = atol(value);
 }
+size_t loadValue_UINT16(unsigned int addr, uint16_t *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_UINT16(unsigned int addr, const uint16_t *value) {
+    return EEPROM_put(addr, value);
+}
 void XxxParam_fillHandlers(XxxParam* param, const uint16_t&) {
     param->getValue = getValue_UINT16;
     param->setValue = setValue_UINT16;
+    param->loadValue = loadValue_UINT16;
+    param->saveValue = saveValue_UINT16;
 }
 
 
@@ -72,9 +130,36 @@ String getValue_STRING(void* var) {
 void setValue_STRING(String* var, const char* value) {
     *var = value;
 }
+size_t loadValue_STRING(unsigned int addr, String* var) {
+    size_t i;
+    char c;
+    char* buf;
+    for (i = 0; EEPROM.read(addr + i); ++i);
+    buf = malloc(i);
+    if (buf) {
+        for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
+        *var = buf;
+        free(buf);
+    }
+    return i;
+}
+size_t saveValue_STRING(unsigned int addr, String* var) {
+    size_t i;
+    char c;
+    for (i = 0; ; ++i) {
+        c = (*var).c_str()[i];
+        EEPROM.write(addr + i, c);
+        if (!c) {
+            break;
+        }
+    }
+    return i;
+}
 void XxxParam_fillHandlers(XxxParam* param, const String&) {
     param->getValue = getValue_STRING;
     param->setValue = setValue_STRING;
+    param->loadValue = loadValue_STRING;
+    param->saveValue = saveValue_STRING;
 }
 
 
@@ -141,6 +226,32 @@ public:
 };
 
 
+class CmdLoad {
+public:
+    void run() {
+        XxxParamsIterrator itter(XxxParamsStore);
+        XxxParam param;
+        unsigned int addr = 0;
+        while (itter.next(&param)) {
+            addr += param.loadValue(addr, param.var);
+        }
+    }
+};
+
+
+class CmdSave {
+public:
+    void run() {
+        XxxParamsIterrator itter(XxxParamsStore);
+        XxxParam param;
+        unsigned int addr = 0;
+        while (itter.next(&param)) {
+            addr += param.saveValue(addr, param.var);
+        }
+    }
+};
+
+
 class XXX {
 public:
     void update() {
@@ -157,6 +268,14 @@ public:
             } else {
                 if (strcmp_P(line, PSTR("params")) == 0) {
                     CmdParams cmd;
+                    cmd.run();
+                }
+                if (strcmp_P(line, PSTR("load")) == 0) {
+                    CmdLoad cmd;
+                    cmd.run();
+                }
+                if (strcmp_P(line, PSTR("save")) == 0) {
+                    CmdSave cmd;
                     cmd.run();
                 }
             }
