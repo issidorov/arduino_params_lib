@@ -191,21 +191,19 @@ void XxxParam_fillHandlers(XxxParam* param, const String&) {
 
 
 String getValue_TABLE(XxxParamTable* var) {
-    // uint8_t ii;
-    // unsigned int i;
-    // unsigned int rows_length = var->rows_length;
-    // XxxParam param;
+    uint8_t ii;
+    unsigned int i;
+    unsigned int rows_length = var->rows_length;
+    XxxParam param;
 
-    // Serial.println();
-    // for (i = 0; i < rows_length; ++i) {
-    //     Serial.print(i);
-    //     for (ii = 0; var->provider(&param, ii, i); ++ii) {
-    //         Serial.print(F("    "));
-    //         Serial.print(param.getValue(param.var));
-    //         delay(500);
-    //     }
-    //     Serial.println();
-    // }
+    for (i = 0; i < rows_length; ++i) {
+        Serial.println();
+        Serial.print(i);
+        for (ii = 0; var->provider(&param, ii, i); ++ii) {
+            Serial.print(F("    "));
+            Serial.print(param.getValue(param.var));
+        }
+    }
 
     return String("");
 }
@@ -371,7 +369,7 @@ public:
                                                 XxxParam_fillHandlers(param, var_name); \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
-                                            case (__COUNTER__ - COUNTER_BASE): \
+                                            case (__COUNTER__ - COUNTER_BASE): { \
                                                 XxxParamTable* table = new XxxParamTable(rows_length); \
                                                 table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
                                                     switch (col_index) { \
@@ -384,7 +382,7 @@ public:
                                                 param->name = PSTR(#var_name); \
                                                 param->var = table; \
                                                 XxxParam_fillHandlers(param, *table); \
-                                                break;
+                                            } break;
 #define END_PARAMS() \
                                             default: \
                                                 return false; \
