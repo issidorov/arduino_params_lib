@@ -286,14 +286,14 @@ public:
 
 
 #define BEGIN_PARAMS() \
-                                    bool XxxParamsStore(XxxParam* buf, uint8_t index) { \
+                                    bool XxxParamsStore(XxxParam* param, uint8_t index) { \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
                                         switch (index) {
 #define PARAM(var_name) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                buf->name = PSTR(#var_name); \
-                                                buf->var = &var_name; \
-                                                XxxParam_fillHandlers(buf, var_name); \
+                                                param->name = PSTR(#var_name); \
+                                                param->var = &var_name; \
+                                                XxxParam_fillHandlers(param, var_name); \
                                                 break;
 #define END_PARAMS() \
                                             default: \
