@@ -259,6 +259,7 @@ public:
 
 private:
     void printParam(const XxxParam& param) {
+        Serial.println();
         Serial.print(FPSTR(param.name));
         Serial.print(" ");
         Serial.print(param.getValue(param.var));
@@ -344,6 +345,7 @@ public:
                 }
             }
             free(line);
+            Serial.println();
         }
     }
 } XXX;
