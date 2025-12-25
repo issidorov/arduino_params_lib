@@ -1,10 +1,24 @@
 #include <EEPROM.h>
+#include <FOR_MACRO.h>
 
 #define FPSTR(s) (const __FlashStringHelper*)(s)
 
 uint8_t ggg1 = 12;
 uint8_t ggg2 = 34;
 String ggg3 = "hello!";
+
+struct MyGG {
+    int a;
+    int b;
+    int c;
+};
+
+MyGG ggg4[] = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9},
+    {10, 11, 12},
+};
 
 
 typedef String FnValueGetter(void* var);
@@ -22,6 +36,19 @@ struct XxxParam {
 };
 
 bool XxxParamsStore(XxxParam* buf, uint8_t index);
+
+
+
+typedef bool XxxParamTable_provider_fn(XxxParam* param, uint8_t col_index, unsigned int row_index);
+
+class XxxParamTable {
+public:
+    unsigned int rows_length;
+    XxxParamTable_provider_fn* provider = nullptr;
+
+    XxxParamTable(unsigned int rows_length) : rows_length(rows_length) {}
+};
+
 
 
 template< typename T >
@@ -163,6 +190,44 @@ void XxxParam_fillHandlers(XxxParam* param, const String&) {
 }
 
 
+String getValue_TABLE(XxxParamTable* var) {
+    // uint8_t ii;
+    // unsigned int i;
+    // unsigned int rows_length = var->rows_length;
+    // XxxParam param;
+
+    // Serial.println();
+    // for (i = 0; i < rows_length; ++i) {
+    //     Serial.print(i);
+    //     for (ii = 0; var->provider(&param, ii, i); ++ii) {
+    //         Serial.print(F("    "));
+    //         Serial.print(param.getValue(param.var));
+    //         delay(500);
+    //     }
+    //     Serial.println();
+    // }
+
+    return String("");
+}
+void setValue_TABLE(void* var, const char* value) {
+    //*var = value;
+}
+size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
+    return 0;
+}
+size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
+    return 0;
+}
+void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable&) {
+    param->getValue = getValue_TABLE;
+    param->setValue = setValue_TABLE;
+    param->loadValue = loadValue_TABLE;
+    param->saveValue = saveValue_TABLE;
+}
+
+
+
+
 typedef bool FnParamsGetter(XxxParam* buf, uint8_t index);
 
 
@@ -190,6 +255,7 @@ public:
         XxxParam buf;
         while (itter.next(&buf)) {
             printParam(buf);
+            delete buf.var; // todo; delete XxxParamTable
         }
     }
 
@@ -285,6 +351,15 @@ public:
 } XXX;
 
 
+
+
+#define FM_PARAM_TABLE_COLUMN(N, i, p, val) \
+                                                        case (N-i-1): \
+                                                            _param->var = &(p[row_index].val); \
+                                                            XxxParam_fillHandlers(_param, p[row_index].val); \
+                                                            break;
+
+
 #define BEGIN_PARAMS() \
                                     bool XxxParamsStore(XxxParam* param, uint8_t index) { \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
@@ -294,6 +369,21 @@ public:
                                                 param->name = PSTR(#var_name); \
                                                 param->var = &var_name; \
                                                 XxxParam_fillHandlers(param, var_name); \
+                                                break;
+#define PARAM_TABLE(var_name, rows_length, ...) \
+                                            case (__COUNTER__ - COUNTER_BASE): \
+                                                XxxParamTable* table = new XxxParamTable(rows_length); \
+                                                table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
+                                                    switch (col_index) { \
+                                                        FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
+                                                        default: \
+                                                            return false; \
+                                                    } \
+                                                    return true; \
+                                                }; \
+                                                param->name = PSTR(#var_name); \
+                                                param->var = table; \
+                                                XxxParam_fillHandlers(param, *table); \
                                                 break;
 #define END_PARAMS() \
                                             default: \
@@ -307,9 +397,10 @@ public:
 
 
 BEGIN_PARAMS()
-    PARAM(ggg1)
-    PARAM(ggg2)
-    PARAM(ggg3)
+    // PARAM(ggg1)
+    // PARAM(ggg2)
+    // PARAM(ggg3)
+    PARAM_TABLE(ggg4, 4, a, b, c)
 END_PARAMS()
 
 void setup() {
