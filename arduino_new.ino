@@ -29,6 +29,7 @@ typedef size_t FnValueSave(unsigned int addr, const void* var);
 struct XxxParam {
     PGM_P name;
     void* var;
+    bool is_tmp_var;
     FnValueGetter* getValue;
     FnValueSetter* setValue;
     FnValueLoad* loadValue;
@@ -253,7 +254,9 @@ public:
         XxxParam buf;
         while (itter.next(&buf)) {
             printParam(buf);
-            delete buf.var; // todo; delete XxxParamTable
+            if (buf.is_tmp_var) {
+                delete buf.var;
+            }
         }
     }
 
@@ -368,6 +371,7 @@ public:
                                             case (__COUNTER__ - COUNTER_BASE): \
                                                 param->name = PSTR(#var_name); \
                                                 param->var = &var_name; \
+                                                param->is_tmp_var = false; \
                                                 XxxParam_fillHandlers(param, var_name); \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
@@ -383,6 +387,7 @@ public:
                                                 }; \
                                                 param->name = PSTR(#var_name); \
                                                 param->var = table; \
+                                                param->is_tmp_var = true; \
                                                 XxxParam_fillHandlers(param, *table); \
                                             } break;
 #define END_PARAMS() \
@@ -397,9 +402,9 @@ public:
 
 
 BEGIN_PARAMS()
-    // PARAM(ggg1)
-    // PARAM(ggg2)
-    // PARAM(ggg3)
+    PARAM(ggg1)
+    PARAM(ggg2)
+    PARAM(ggg3)
     PARAM_TABLE(ggg4, 4, a, b, c)
 END_PARAMS()
 
