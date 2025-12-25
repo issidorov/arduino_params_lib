@@ -143,7 +143,7 @@ size_t loadValue_STRING(unsigned int addr, String* var) {
     }
     return i;
 }
-size_t saveValue_STRING(unsigned int addr, String* var) {
+size_t saveValue_STRING(unsigned int addr, const String* var) {
     size_t i;
     char c;
     for (i = 0; ; ++i) {
