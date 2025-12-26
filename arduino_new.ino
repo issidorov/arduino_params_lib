@@ -192,7 +192,7 @@ void XxxParam_fillHandlers(XxxParam* param, const String&) {
 
 
 String getValue_TABLE(XxxParamTable* var) {
-    uint8_t ii;
+    uint8_t ii, j;
     unsigned int i;
     unsigned int rows_length = var->rows_length;
     XxxParam param;
@@ -201,8 +201,12 @@ String getValue_TABLE(XxxParamTable* var) {
         Serial.println();
         Serial.print(i);
         for (ii = 0; var->provider(&param, ii, i); ++ii) {
-            Serial.print(F("    "));
-            Serial.print(param.getValue(param.var));
+            const uint8_t cellWeight = 6;
+            String value = param.getValue(param.var);
+            for (j = cellWeight - value.length(); j; --j) {
+                Serial.print(F(" "));
+            }
+            Serial.print(value);
         }
     }
 
