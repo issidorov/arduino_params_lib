@@ -238,12 +238,21 @@ String getValue_TABLE(XxxParamTable* var) {
     unsigned int i;
     unsigned int rows_length = var->rows_length;
     XxxParam param;
+    const uint8_t cellWeight = 6;
+
+    Serial.println();
+    Serial.print(F(" "));
+    for (ii = 0; var->provider(&param, ii, i); ++ii) {
+        for (j = cellWeight - strlen_P(param.name); j; --j) {
+            Serial.print(F(" "));
+        }
+        Serial.print(FPSTR(param.name));
+    }
 
     for (i = 0; i < rows_length; ++i) {
         Serial.println();
         Serial.print(i);
         for (ii = 0; var->provider(&param, ii, i); ++ii) {
-            const uint8_t cellWeight = 6;
             String value = param.getValue(param.var);
             for (j = cellWeight - value.length(); j; --j) {
                 Serial.print(F(" "));
