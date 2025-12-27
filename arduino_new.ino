@@ -255,10 +255,34 @@ String getValue_TABLE(XxxParamTable* var) {
     return String("");
 }
 size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
-    return 0;
+    size_t size = 0;
+    uint8_t ii;
+    unsigned int i;
+    unsigned int rows_length = var->rows_length;
+    XxxParam param;
+
+    for (i = 0; i < rows_length; ++i) {
+        for (ii = 0; var->provider(&param, ii, i); ++ii) {
+            size += param.loadValue(addr + size, param.var);
+        }
+    }
+
+    return size;
 }
 size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
-    return 0;
+    size_t size = 0;
+    uint8_t ii;
+    unsigned int i;
+    unsigned int rows_length = var->rows_length;
+    XxxParam param;
+
+    for (i = 0; i < rows_length; ++i) {
+        for (ii = 0; var->provider(&param, ii, i); ++ii) {
+            size += param.saveValue(addr + size, param.var);
+        }
+    }
+
+    return size;
 }
 void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable&) {
     param->cmpName = cmpName_TABLE;
