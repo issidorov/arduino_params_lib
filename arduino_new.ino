@@ -187,7 +187,7 @@ size_t saveValue_STRING(unsigned int addr, const String* var) {
             break;
         }
     }
-    return i;
+    return i + 1;
 }
 void XxxParam_fillHandlers(XxxParam* param, const String&) {
     param->getValue = getValue_STRING;
