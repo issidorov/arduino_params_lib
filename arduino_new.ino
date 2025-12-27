@@ -21,17 +21,21 @@ MyGG ggg4[] = {
 };
 
 
+struct XxxParam;
+
 typedef String FnValueGetter(void* var);
 typedef void FnValueSetter(void* var, const char* value);
 typedef size_t FnValueLoad(unsigned int addr, void* var);
 typedef size_t FnValueSave(unsigned int addr, const void* var);
 typedef int FnCmpName(const char* str, PGM_P name);
+typedef bool FnSubParamGetter(XxxParam* subParam, void* var, const char* fullParamName);
 
 struct XxxParam {
     PGM_P name;
     void* var;
     bool is_tmp_var;
     FnCmpName* cmpName;
+    FnSubParamGetter* getSubParam;
     FnValueGetter* getValue;
     FnValueSetter* setValue;
     FnValueLoad* loadValue;
@@ -196,6 +200,39 @@ void XxxParam_fillHandlers(XxxParam* param, const String&) {
 int cmpName_TABLE(const char* str, PGM_P paramName) {
     return strncmp_P(str, paramName, strlen_P(paramName));
 }
+bool parseFullParamName_TABLE(char* fullParamName, int* index, char** subName) {
+    char* pos1 = strchr(fullParamName, '[');
+    char* pos2 = strchr(fullParamName, ']');
+    char* pos3 = strchr(fullParamName, '.');
+    
+    if (!pos1 || !pos2 || !pos3) return false;
+    if (pos1 > pos2) return false;
+    if (pos3 != pos2 + 1) return false;
+
+    *pos2 = 0;
+    *index = atoi(pos1 + 1);
+    *pos2 = ']';
+
+    *subName = pos3 + 1;
+
+    return true;
+}
+bool getSubParam_TABLE(XxxParam* subParam, XxxParamTable* var, const char* fullParamName) {
+    int index;
+    char* subName;
+    if(!parseFullParamName_TABLE(fullParamName, &index, &subName)) {
+        Serial.println(F("Error: invalid param."));
+        return false;
+    }
+
+    for (uint8_t ii = 0; var->provider(subParam, ii, index); ++ii) {
+        if (strcmp_P(subName, subParam->name) == 0) {
+            return true;
+        }
+    }
+    Serial.println(F("Error: param not found."));
+    return false;
+}
 String getValue_TABLE(XxxParamTable* var) {
     uint8_t ii, j;
     unsigned int i;
@@ -217,10 +254,6 @@ String getValue_TABLE(XxxParamTable* var) {
 
     return String("");
 }
-void setValue_TABLE(void* var, const char* value) {
-    Serial.println(F("set table value"));
-    //*var = value;
-}
 size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
     return 0;
 }
@@ -229,8 +262,9 @@ size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
 }
 void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable&) {
     param->cmpName = cmpName_TABLE;
+    param->getSubParam = getSubParam_TABLE;
     param->getValue = getValue_TABLE;
-    param->setValue = setValue_TABLE;
+    param->setValue = nullptr;
     param->loadValue = loadValue_TABLE;
     param->saveValue = saveValue_TABLE;
 }
@@ -300,8 +334,16 @@ public:
                 : strcmp_P(paramName, param.name);
 
             if (cmpRes == 0) {
-                param.setValue(param.var, newParamValue);
-                Serial.println(F("OK"));
+                if (param.getSubParam) {
+                    XxxParam subParam;
+                    if(param.getSubParam(&subParam, param.var, paramName)) {
+                        subParam.setValue(subParam.var, newParamValue);
+                        Serial.println(F("OK"));
+                    }
+                } else {
+                    param.setValue(param.var, newParamValue);
+                    Serial.println(F("OK"));
+                }
                 break;
             }
         }
@@ -373,6 +415,7 @@ public:
 
 #define FM_PARAM_TABLE_COLUMN(N, i, p, val) \
                                                         case (N-i-1): \
+                                                            _param->name = PSTR(#val); \
                                                             _param->var = &(p[row_index].val); \
                                                             XxxParam_fillHandlers(_param, p[row_index].val); \
                                                             break;
@@ -388,6 +431,7 @@ public:
                                                 param->var = &var_name; \
                                                 param->is_tmp_var = false; \
                                                 param->cmpName = nullptr; \
+                                                param->getSubParam = nullptr; \
                                                 XxxParam_fillHandlers(param, var_name); \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
