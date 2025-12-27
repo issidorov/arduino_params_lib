@@ -25,11 +25,13 @@ typedef String FnValueGetter(void* var);
 typedef void FnValueSetter(void* var, const char* value);
 typedef size_t FnValueLoad(unsigned int addr, void* var);
 typedef size_t FnValueSave(unsigned int addr, const void* var);
+typedef int FnCmpName(const char* str, PGM_P name);
 
 struct XxxParam {
     PGM_P name;
     void* var;
     bool is_tmp_var;
+    FnCmpName* cmpName;
     FnValueGetter* getValue;
     FnValueSetter* setValue;
     FnValueLoad* loadValue;
@@ -191,6 +193,9 @@ void XxxParam_fillHandlers(XxxParam* param, const String&) {
 }
 
 
+int cmpName_TABLE(const char* str, PGM_P paramName) {
+    return strncmp_P(str, paramName, strlen_P(paramName));
+}
 String getValue_TABLE(XxxParamTable* var) {
     uint8_t ii, j;
     unsigned int i;
@@ -213,6 +218,7 @@ String getValue_TABLE(XxxParamTable* var) {
     return String("");
 }
 void setValue_TABLE(void* var, const char* value) {
+    Serial.println(F("set table value"));
     //*var = value;
 }
 size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
@@ -222,6 +228,7 @@ size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
     return 0;
 }
 void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable&) {
+    param->cmpName = cmpName_TABLE;
     param->getValue = getValue_TABLE;
     param->setValue = setValue_TABLE;
     param->loadValue = loadValue_TABLE;
@@ -288,7 +295,11 @@ public:
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam param;
         while (itter.next(&param)) {
-            if (strcmp_P(paramName, param.name) == 0) {
+            int cmpRes = param.cmpName
+                ? param.cmpName(paramName, param.name)
+                : strcmp_P(paramName, param.name);
+
+            if (cmpRes == 0) {
                 param.setValue(param.var, newParamValue);
                 Serial.println(F("OK"));
                 break;
@@ -376,6 +387,7 @@ public:
                                                 param->name = PSTR(#var_name); \
                                                 param->var = &var_name; \
                                                 param->is_tmp_var = false; \
+                                                param->cmpName = nullptr; \
                                                 XxxParam_fillHandlers(param, var_name); \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
