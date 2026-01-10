@@ -244,13 +244,13 @@ size_t loadValue_STRING(unsigned int addr, String* var) {
     char c;
     char* buf;
     for (i = 0; EEPROM.read(addr + i); ++i);
-    buf = malloc(i);
+    buf = malloc(i + 1);
     if (buf) {
         for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
         *var = buf;
         free(buf);
     }
-    return i;
+    return i + 1;
 }
 size_t saveValue_STRING(unsigned int addr, const String* var) {
     size_t i;
