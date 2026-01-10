@@ -20,6 +20,9 @@ MyGG ggg4[] = {
     {10, 11, 12},
 };
 
+float ggg5 = 0.545;
+double ggg6 = 0.343562;
+
 
 struct XxxParam;
 
@@ -155,6 +158,76 @@ void XxxParam_fillHandlers(XxxParam* param, const uint16_t&) {
     param->setValue = setValue_UINT16;
     param->loadValue = loadValue_UINT16;
     param->saveValue = saveValue_UINT16;
+}
+
+
+void clean_last_nullable(char* s) {
+    for(int i = strlen(s) - 1; i; --i) {
+        if (s[i] == '.') {
+            s[i] = NULL;
+            break;
+        }
+        if (s[i] != '0') {
+            s[i + 1] = NULL;
+            break;
+        }
+    }
+}
+
+
+String getValue_FLOAT(float* var) {
+    char s[8];
+    int perc = 2;
+    {
+        if (*var < 10.) perc = 4;
+        else if (*var < 100.) perc = 3;
+    }
+    dtostrf(*var, 0, perc, s);
+    clean_last_nullable(s);
+    return String(s);
+}
+void setValue_FLOAT(float* var, const char* value) {
+    *var = atof(value);
+}
+size_t loadValue_FLOAT(unsigned int addr, float *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_FLOAT(unsigned int addr, const float *value) {
+    return EEPROM_put(addr, value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const float&) {
+    param->getValue = getValue_FLOAT;
+    param->setValue = setValue_FLOAT;
+    param->loadValue = loadValue_FLOAT;
+    param->saveValue = saveValue_FLOAT;
+}
+
+
+String getValue_DOUBLE(double* var) {
+    char s[16];
+    int perc = 4;
+    {
+        if (*var < 10.) perc = 6;
+        else if (*var < 100.) perc = 5;
+    }
+    dtostrf(*var, 0, perc, s);
+    clean_last_nullable(s);
+    return String(s);
+}
+void setValue_DOUBLE(double* var, const char* value) {
+    *var = strtod(value, NULL);
+}
+size_t loadValue_DOUBLE(unsigned int addr, double *value) {
+    return EEPROM_get(addr, value);
+}
+size_t saveValue_DOUBLE(unsigned int addr, const double *value) {
+    return EEPROM_put(addr, value);
+}
+void XxxParam_fillHandlers(XxxParam* param, const double&) {
+    param->getValue = getValue_DOUBLE;
+    param->setValue = setValue_DOUBLE;
+    param->loadValue = loadValue_DOUBLE;
+    param->saveValue = saveValue_DOUBLE;
 }
 
 
@@ -499,6 +572,8 @@ BEGIN_PARAMS()
     PARAM(ggg2)
     PARAM(ggg3)
     PARAM_TABLE(ggg4, 4, a, b, c)
+    PARAM(ggg5)
+    PARAM(ggg6)
 END_PARAMS()
 
 void setup() {
