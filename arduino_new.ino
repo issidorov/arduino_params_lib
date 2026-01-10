@@ -64,8 +64,9 @@ public:
 template< typename T >
 size_t EEPROM_get( unsigned int addr, T* value ) {
     unsigned int i;
+    char* ptr = (char*) value;
     for( i = 0 ; i < sizeof(T) ; ++i ) {
-        *(value + i) = EEPROM.read(addr + i);
+        ptr[i] = EEPROM.read(addr + i);
     }
     return sizeof(T);
 }
@@ -73,8 +74,9 @@ size_t EEPROM_get( unsigned int addr, T* value ) {
 template< typename T >
 size_t EEPROM_put( unsigned int addr, const T* value ) {
     unsigned int i, e;
+    char* ptr = (char*) value;
     for( i = 0 ; i < sizeof(T) ; ++i ) {
-        EEPROM.write(addr + i, *(value + i));
+        EEPROM.write(addr + i, ptr[i]);
     }
     return sizeof(T);
 }
