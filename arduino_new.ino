@@ -13,12 +13,13 @@ struct MyGG {
     int c;
 };
 
-MyGG ggg4[] = {
+MyGG ggg4[10] = {
     {1, 2, 3},
     {4, 5, 6},
     {7, 8, 9},
     {10, 11, 12},
 };
+unsigned int ggg4_len = 4;
 
 float ggg5 = 0.545;
 double ggg6 = 0.343562;
@@ -56,10 +57,10 @@ typedef bool XxxParamTable_provider_fn(XxxParam* param, uint8_t col_index, unsig
 
 class XxxParamTable {
 public:
-    unsigned int rows_length;
+    unsigned int* rows_length;
     XxxParamTable_provider_fn* provider = nullptr;
 
-    XxxParamTable(unsigned int rows_length) : rows_length(rows_length) {}
+    XxxParamTable(unsigned int* rows_length) : rows_length(rows_length) {}
 };
 
 
@@ -354,7 +355,7 @@ bool getSubParam_TABLE(XxxParam* subParam, XxxParamTable* var, const char* fullP
 String getValue_TABLE(XxxParamTable* var) {
     uint8_t ii, j;
     unsigned int i;
-    unsigned int rows_length = var->rows_length;
+    unsigned int rows_length = *(var->rows_length);
     XxxParam param;
     const uint8_t cellWeight = 6;
 
@@ -385,8 +386,11 @@ size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
     size_t size = 0;
     uint8_t ii;
     unsigned int i;
-    unsigned int rows_length = var->rows_length;
+    unsigned int rows_length;
     XxxParam param;
+
+    size += EEPROM_get(addr, var->rows_length);
+    rows_length = *(var->rows_length);
 
     for (i = 0; i < rows_length; ++i) {
         for (ii = 0; var->provider(&param, ii, i); ++ii) {
@@ -400,8 +404,10 @@ size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
     size_t size = 0;
     uint8_t ii;
     unsigned int i;
-    unsigned int rows_length = var->rows_length;
+    unsigned int rows_length = *(var->rows_length);
     XxxParam param;
+
+    size += EEPROM_put(addr, var->rows_length);
 
     for (i = 0; i < rows_length; ++i) {
         for (ii = 0; var->provider(&param, ii, i); ++ii) {
@@ -589,7 +595,7 @@ public:
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
                                             case (__COUNTER__ - COUNTER_BASE): { \
-                                                XxxParamTable* table = new XxxParamTable(rows_length); \
+                                                XxxParamTable* table = new XxxParamTable(&rows_length); \
                                                 table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
                                                     switch (col_index) { \
                                                         FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
@@ -618,7 +624,7 @@ BEGIN_PARAMS()
     PARAM(ggg1)
     PARAM(ggg2)
     PARAM(ggg3)
-    PARAM_TABLE(ggg4, 4, a, b, c)
+    PARAM_TABLE(ggg4, ggg4_len, a, b, c)
     PARAM(ggg5)
     PARAM(ggg6)
     PARAM(ggg7)
