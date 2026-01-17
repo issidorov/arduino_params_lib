@@ -23,6 +23,9 @@ MyGG ggg4[] = {
 float ggg5 = 0.545;
 double ggg6 = 0.343562;
 
+char* ggg7 = strdup("Hello char* string!");
+//char* ggg7 = nullptr;
+
 
 struct XxxParam;
 
@@ -269,6 +272,46 @@ void XxxParam_fillHandlers(XxxParam* param, const String*) {
     param->setValue = setValue_STRING;
     param->loadValue = loadValue_STRING;
     param->saveValue = saveValue_STRING;
+}
+
+
+String getValue_CHAR_STRING(char** var) {
+    return *var ? String(*var) : String();
+}
+void setValue_CHAR_STRING(char** var, const char* value) {
+    free(*var);
+    *var = strdup(value);
+}
+size_t loadValue_CHAR_STRING(unsigned int addr, char** var) {
+    size_t i;
+    char c;
+    char* buf;
+    for (i = 0; EEPROM.read(addr + i); ++i);
+    buf = malloc(i + 1);
+    if (buf) {
+        for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
+        setValue_CHAR_STRING(var, buf);
+        free(buf);
+    }
+    return i + 1;
+}
+size_t saveValue_CHAR_STRING(unsigned int addr, const char** var) {
+    size_t i;
+    char c;
+    for (i = 0; ; ++i) {
+        c = *var ? (*var)[i] : NULL;
+        EEPROM.write(addr + i, c);
+        if (!c) {
+            break;
+        }
+    }
+    return i + 1;
+}
+void XxxParam_fillHandlers(XxxParam* param, const char**) {
+    param->getValue = getValue_CHAR_STRING;
+    param->setValue = setValue_CHAR_STRING;
+    param->loadValue = loadValue_CHAR_STRING;
+    param->saveValue = saveValue_CHAR_STRING;
 }
 
 
@@ -578,6 +621,7 @@ BEGIN_PARAMS()
     PARAM_TABLE(ggg4, 4, a, b, c)
     PARAM(ggg5)
     PARAM(ggg6)
+    PARAM(ggg7)
 END_PARAMS()
 
 void setup() {
