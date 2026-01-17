@@ -89,13 +89,13 @@ String getValue_INT8(void* var) {
 void setValue_INT8(int8_t* var, const char* value) {
     *var = atoi(value);
 }
-size_t loadValue_INT8(unsigned int addr, int8_t *value) {
+size_t loadValue_INT8(unsigned int addr, int8_t* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_INT8(unsigned int addr, const int8_t *value) {
+size_t saveValue_INT8(unsigned int addr, const int8_t* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const int8_t&) {
+void XxxParam_fillHandlers(XxxParam* param, const int8_t*) {
     param->getValue = getValue_INT8;
     param->setValue = setValue_INT8;
     param->loadValue = loadValue_INT8;
@@ -109,13 +109,13 @@ String getValue_UINT8(void* var) {
 void setValue_UINT8(uint8_t* var, const char* value) {
     *var = atoi(value);
 }
-size_t loadValue_UINT8(unsigned int addr, uint8_t *value) {
+size_t loadValue_UINT8(unsigned int addr, uint8_t* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_UINT8(unsigned int addr, const uint8_t *value) {
+size_t saveValue_UINT8(unsigned int addr, const uint8_t* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const uint8_t&) {
+void XxxParam_fillHandlers(XxxParam* param, const uint8_t*) {
     param->getValue = getValue_UINT8;
     param->setValue = setValue_UINT8;
     param->loadValue = loadValue_UINT8;
@@ -129,13 +129,13 @@ String getValue_INT16(void* var) {
 void setValue_INT16(int16_t* var, const char* value) {
     *var = atol(value);
 }
-size_t loadValue_INT16(unsigned int addr, int16_t *value) {
+size_t loadValue_INT16(unsigned int addr, int16_t* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_INT16(unsigned int addr, const int16_t *value) {
+size_t saveValue_INT16(unsigned int addr, const int16_t* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const int16_t&) {
+void XxxParam_fillHandlers(XxxParam* param, const int16_t*) {
     param->getValue = getValue_INT16;
     param->setValue = setValue_INT16;
     param->loadValue = loadValue_INT16;
@@ -149,13 +149,13 @@ String getValue_UINT16(void* var) {
 void setValue_UINT16(uint16_t* var, const char* value) {
     *var = atol(value);
 }
-size_t loadValue_UINT16(unsigned int addr, uint16_t *value) {
+size_t loadValue_UINT16(unsigned int addr, uint16_t* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_UINT16(unsigned int addr, const uint16_t *value) {
+size_t saveValue_UINT16(unsigned int addr, const uint16_t* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const uint16_t&) {
+void XxxParam_fillHandlers(XxxParam* param, const uint16_t*) {
     param->getValue = getValue_UINT16;
     param->setValue = setValue_UINT16;
     param->loadValue = loadValue_UINT16;
@@ -191,13 +191,13 @@ String getValue_FLOAT(float* var) {
 void setValue_FLOAT(float* var, const char* value) {
     *var = atof(value);
 }
-size_t loadValue_FLOAT(unsigned int addr, float *value) {
+size_t loadValue_FLOAT(unsigned int addr, float* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_FLOAT(unsigned int addr, const float *value) {
+size_t saveValue_FLOAT(unsigned int addr, const float* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const float&) {
+void XxxParam_fillHandlers(XxxParam* param, const float*) {
     param->getValue = getValue_FLOAT;
     param->setValue = setValue_FLOAT;
     param->loadValue = loadValue_FLOAT;
@@ -219,13 +219,13 @@ String getValue_DOUBLE(double* var) {
 void setValue_DOUBLE(double* var, const char* value) {
     *var = strtod(value, NULL);
 }
-size_t loadValue_DOUBLE(unsigned int addr, double *value) {
+size_t loadValue_DOUBLE(unsigned int addr, double* value) {
     return EEPROM_get(addr, value);
 }
-size_t saveValue_DOUBLE(unsigned int addr, const double *value) {
+size_t saveValue_DOUBLE(unsigned int addr, const double* value) {
     return EEPROM_put(addr, value);
 }
-void XxxParam_fillHandlers(XxxParam* param, const double&) {
+void XxxParam_fillHandlers(XxxParam* param, const double*) {
     param->getValue = getValue_DOUBLE;
     param->setValue = setValue_DOUBLE;
     param->loadValue = loadValue_DOUBLE;
@@ -264,7 +264,7 @@ size_t saveValue_STRING(unsigned int addr, const String* var) {
     }
     return i + 1;
 }
-void XxxParam_fillHandlers(XxxParam* param, const String&) {
+void XxxParam_fillHandlers(XxxParam* param, const String*) {
     param->getValue = getValue_STRING;
     param->setValue = setValue_STRING;
     param->loadValue = loadValue_STRING;
@@ -368,7 +368,7 @@ size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
 
     return size;
 }
-void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable&) {
+void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable*) {
     param->cmpName = cmpName_TABLE;
     param->getSubParam = getSubParam_TABLE;
     param->getValue = getValue_TABLE;
@@ -527,7 +527,7 @@ public:
                                                         case (N-i-1): \
                                                             _param->name = PSTR(#val); \
                                                             _param->var = &(p[row_index].val); \
-                                                            XxxParam_fillHandlers(_param, p[row_index].val); \
+                                                            XxxParam_fillHandlers(_param, &(p[row_index].val)); \
                                                             break;
 
 
@@ -542,7 +542,7 @@ public:
                                                 param->is_tmp_var = false; \
                                                 param->cmpName = nullptr; \
                                                 param->getSubParam = nullptr; \
-                                                XxxParam_fillHandlers(param, var_name); \
+                                                XxxParam_fillHandlers(param, &var_name); \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
                                             case (__COUNTER__ - COUNTER_BASE): { \
@@ -558,7 +558,7 @@ public:
                                                 param->name = PSTR(#var_name); \
                                                 param->var = table; \
                                                 param->is_tmp_var = true; \
-                                                XxxParam_fillHandlers(param, *table); \
+                                                XxxParam_fillHandlers(param, table); \
                                             } break;
 #define END_PARAMS() \
                                             default: \
