@@ -37,6 +37,14 @@ typedef size_t FnValueSave(unsigned int addr, const void* var);
 typedef int FnCmpName(const char* str, PGM_P name);
 typedef bool FnSubParamGetter(XxxParam* subParam, void* var, const char* fullParamName);
 
+
+class XXX_CmdAbstract {
+public:
+    virtual PGM_P getName() = 0;
+    virtual void run() = 0;
+};
+
+
 struct XxxParam {
     PGM_P name;
     void* var;
@@ -451,9 +459,13 @@ public:
 };
 
 
-class CmdParams {
+class CmdParams: public XXX_CmdAbstract {
 public:
-    void run() {
+    PGM_P getName() override {
+        return PSTR("params");
+    }
+
+    void run() override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam buf;
         while (itter.next(&buf)) {
@@ -510,9 +522,13 @@ public:
 };
 
 
-class CmdLoad {
+class CmdLoad: public XXX_CmdAbstract {
 public:
-    void run() {
+    PGM_P getName() override {
+        return PSTR("load");
+    }
+
+    void run() override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam param;
         unsigned int addr = 0;
@@ -524,9 +540,13 @@ public:
 };
 
 
-class CmdSave {
+class CmdSave: public XXX_CmdAbstract {
 public:
-    void run() {
+    PGM_P getName() override {
+        return PSTR("save");
+    }
+
+    void run() override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam param;
         unsigned int addr = 0;
@@ -721,6 +741,21 @@ void XXX_init() {
     while (itter.next(nullptr)) {}
 }
 
+
+XXX_CmdAbstract* getCmd(int index) {
+    switch (index) {
+        case 0:
+            return new CmdParams();
+        case 1:
+            return new CmdLoad();
+        case 2:
+            return new CmdSave();
+        default:
+            return nullptr;
+    }
+}
+
+
 struct XXX {
     void update() {
         if (Serial.available()) {
@@ -748,18 +783,14 @@ struct XXX {
                 }
                 char** args = str_split(p, args_len);
                 if (args || !args_len) {
-                    if (strcmp_P(cmdName, PSTR("params")) == 0) {
-                        CmdParams cmd;
-                        cmd.run();
+                    XXX_CmdAbstract* cmd;
+                    for (int i = 0; cmd = getCmd(i); ++i) {
+                        if (strcmp_P(cmdName, cmd->getName()) == 0) {
+                            cmd->run();
+                        }
+                        delete cmd;
                     }
-                    if (strcmp_P(cmdName, PSTR("load")) == 0) {
-                        CmdLoad cmd;
-                        cmd.run();
-                    }
-                    if (strcmp_P(cmdName, PSTR("save")) == 0) {
-                        CmdSave cmd;
-                        cmd.run();
-                    }
+
                     if (XXX_cmd_insert && strcmp_P(cmdName, PSTR("insert")) == 0) {
                         (*XXX_cmd_insert)(args, args_len);
                     }
