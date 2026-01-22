@@ -1,3 +1,4 @@
 
 arduino-cli compile -ub MassDuino:avr:md328d -p /dev/ttyUSB0 .
 
+arduino-cli monitor -b MassDuino:avr:md328d -p /dev/ttyUSB0 .
