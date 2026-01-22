@@ -542,7 +542,7 @@ public:
         if (Serial.available()) {
             char* line = strdup(Serial.readStringUntil('\n').c_str());
             char* p = strpbrk_P(line, PSTR("= "));
-            if (p[0] == '=') {
+            if (p && p[0] == '=') {
                 p[0] = NULL;
                 char* paramName = line;
                 char* newParamValue = &p[1];
