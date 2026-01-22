@@ -45,23 +45,33 @@ public:
 };
 
 
-struct XxxParam {
+class XxxParam {
+public:
     PGM_P name;
-    void* var;
     bool is_tmp_var;
-    FnCmpName* cmpName;
-    FnSubParamGetter* getSubParam;
-    FnValueGetter* getValue;
-    FnValueSetter* setValue;
-    FnValueLoad* loadValue;
-    FnValueSave* saveValue;
+
+    virtual int cmpName(const char* str) {
+        return strcmp_P(str, this->name);
+    }
+
+    virtual XxxParam* getSubParam(const char* fullParamName) {
+        return nullptr;
+    }
+
+    virtual String getValue() = 0;
+
+    virtual void setValue(const char* value) = 0;
+
+    virtual size_t loadValue(unsigned int addr) = 0;
+
+    virtual size_t saveValue(unsigned int addr) = 0;
 };
 
 bool XxxParamsStore(XxxParam* buf, uint8_t index);
 
 
 
-typedef bool XxxParamTable_provider_fn(XxxParam* param, uint8_t col_index, unsigned int row_index);
+typedef XxxParam* XxxParamTable_provider_fn(uint8_t col_index, unsigned int row_index);
 
 class XxxParamTable {
 public:
@@ -71,6 +81,12 @@ public:
     XxxParamTable_provider_fn* provider = nullptr;
 
     XxxParamTable(unsigned int* rows_length) : rows_length(rows_length) {}
+
+    bool hasSubParam(uint8_t col_index, unsigned int row_index) {
+        XxxParam* subParam = this->provider(col_index, row_index);
+        delete subParam;
+        return subParam != nullptr;
+    }
 };
 
 
@@ -97,83 +113,113 @@ size_t EEPROM_put( unsigned int addr, const T* value ) {
 
 
 
-String getValue_INT8(void* var) {
-    return String(*(int8_t*)var);
-}
-void setValue_INT8(int8_t* var, const char* value) {
-    *var = atoi(value);
-}
-size_t loadValue_INT8(unsigned int addr, int8_t* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_INT8(unsigned int addr, const int8_t* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const int8_t*) {
-    param->getValue = getValue_INT8;
-    param->setValue = setValue_INT8;
-    param->loadValue = loadValue_INT8;
-    param->saveValue = saveValue_INT8;
+class XxxParam_INT8 : public XxxParam {
+public:
+    int8_t* var;
+
+    XxxParam_INT8(int8_t* var) : var(var) {}
+
+    String getValue() override {
+        return String(*this->var);
+    }
+
+    void setValue(const char* value) override {
+        *this->var = atoi(value);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(int8_t* var) {
+    return new XxxParam_INT8(var);
 }
 
 
-String getValue_UINT8(void* var) {
-    return String(*(uint8_t*)var);
-}
-void setValue_UINT8(uint8_t* var, const char* value) {
-    *var = atoi(value);
-}
-size_t loadValue_UINT8(unsigned int addr, uint8_t* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_UINT8(unsigned int addr, const uint8_t* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const uint8_t*) {
-    param->getValue = getValue_UINT8;
-    param->setValue = setValue_UINT8;
-    param->loadValue = loadValue_UINT8;
-    param->saveValue = saveValue_UINT8;
+
+class XxxParam_UINT8 : public XxxParam {
+public:
+    uint8_t* var;
+
+    XxxParam_UINT8(uint8_t* var) : var(var) {}
+
+    String getValue() override {
+        return String(*this->var);
+    }
+
+    void setValue(const char* value) override {
+        *this->var = atoi(value);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(uint8_t* var) {
+    return new XxxParam_UINT8(var);
 }
 
 
-String getValue_INT16(void* var) {
-    return String(*(int16_t*)var);
-}
-void setValue_INT16(int16_t* var, const char* value) {
-    *var = atol(value);
-}
-size_t loadValue_INT16(unsigned int addr, int16_t* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_INT16(unsigned int addr, const int16_t* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const int16_t*) {
-    param->getValue = getValue_INT16;
-    param->setValue = setValue_INT16;
-    param->loadValue = loadValue_INT16;
-    param->saveValue = saveValue_INT16;
+class XxxParam_INT16 : public XxxParam {
+public:
+    int16_t* var;
+
+    XxxParam_INT16(int16_t* var) : var(var) {}
+
+    String getValue() override {
+        return String(*this->var);
+    }
+
+    void setValue(const char* value) override {
+        *this->var = atol(value);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(int16_t* var) {
+    return new XxxParam_INT16(var);
 }
 
 
-String getValue_UINT16(void* var) {
-    return String(*(uint16_t*)var);
-}
-void setValue_UINT16(uint16_t* var, const char* value) {
-    *var = atol(value);
-}
-size_t loadValue_UINT16(unsigned int addr, uint16_t* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_UINT16(unsigned int addr, const uint16_t* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const uint16_t*) {
-    param->getValue = getValue_UINT16;
-    param->setValue = setValue_UINT16;
-    param->loadValue = loadValue_UINT16;
-    param->saveValue = saveValue_UINT16;
+class XxxParam_UINT16 : public XxxParam {
+public:
+    uint16_t* var;
+
+    XxxParam_UINT16(uint16_t* var) : var(var) {}
+
+    String getValue() override {
+        return String(*this->var);
+    }
+    void setValue(const char* value) override {
+        *this->var = atol(value);
+    }
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(uint16_t* var) {
+    return new XxxParam_INT16(var);
 }
 
 
@@ -191,255 +237,308 @@ void clean_last_nullable(char* s) {
 }
 
 
-String getValue_FLOAT(float* var) {
-    char s[8];
-    int perc = 2;
-    {
-        if (*var < 10.) perc = 4;
-        else if (*var < 100.) perc = 3;
-    }
-    dtostrf(*var, 0, perc, s);
-    clean_last_nullable(s);
-    return String(s);
-}
-void setValue_FLOAT(float* var, const char* value) {
-    *var = atof(value);
-}
-size_t loadValue_FLOAT(unsigned int addr, float* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_FLOAT(unsigned int addr, const float* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const float*) {
-    param->getValue = getValue_FLOAT;
-    param->setValue = setValue_FLOAT;
-    param->loadValue = loadValue_FLOAT;
-    param->saveValue = saveValue_FLOAT;
-}
+class XxxParam_FLOAT : public XxxParam {
+public:
+    float* var;
 
-
-String getValue_DOUBLE(double* var) {
-    char s[16];
-    int perc = 4;
-    {
-        if (*var < 10.) perc = 6;
-        else if (*var < 100.) perc = 5;
-    }
-    dtostrf(*var, 0, perc, s);
-    clean_last_nullable(s);
-    return String(s);
-}
-void setValue_DOUBLE(double* var, const char* value) {
-    *var = strtod(value, NULL);
-}
-size_t loadValue_DOUBLE(unsigned int addr, double* value) {
-    return EEPROM_get(addr, value);
-}
-size_t saveValue_DOUBLE(unsigned int addr, const double* value) {
-    return EEPROM_put(addr, value);
-}
-void XxxParam_fillHandlers(XxxParam* param, const double*) {
-    param->getValue = getValue_DOUBLE;
-    param->setValue = setValue_DOUBLE;
-    param->loadValue = loadValue_DOUBLE;
-    param->saveValue = saveValue_DOUBLE;
-}
-
-
-String getValue_STRING(void* var) {
-    return String(*(String*)var);
-}
-void setValue_STRING(String* var, const char* value) {
-    *var = value;
-}
-size_t loadValue_STRING(unsigned int addr, String* var) {
-    size_t i;
-    char c;
-    char* buf;
-    for (i = 0; EEPROM.read(addr + i); ++i);
-    buf = malloc(i + 1);
-    if (buf) {
-        for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
-        *var = buf;
-        free(buf);
-    }
-    return i + 1;
-}
-size_t saveValue_STRING(unsigned int addr, const String* var) {
-    size_t i;
-    char c;
-    for (i = 0; ; ++i) {
-        c = (*var).c_str()[i];
-        EEPROM.write(addr + i, c);
-        if (!c) {
-            break;
-        }
-    }
-    return i + 1;
-}
-void XxxParam_fillHandlers(XxxParam* param, const String*) {
-    param->getValue = getValue_STRING;
-    param->setValue = setValue_STRING;
-    param->loadValue = loadValue_STRING;
-    param->saveValue = saveValue_STRING;
-}
-
-
-String getValue_CHAR_STRING(char** var) {
-    return *var ? String(*var) : String();
-}
-void setValue_CHAR_STRING(char** var, const char* value) {
-    free(*var);
-    *var = strdup(value);
-}
-size_t loadValue_CHAR_STRING(unsigned int addr, char** var) {
-    size_t i;
-    char c;
-    char* buf;
-    for (i = 0; EEPROM.read(addr + i); ++i);
-    buf = malloc(i + 1);
-    if (buf) {
-        for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
-        setValue_CHAR_STRING(var, buf);
-        free(buf);
-    }
-    return i + 1;
-}
-size_t saveValue_CHAR_STRING(unsigned int addr, const char** var) {
-    size_t i;
-    char c;
-    for (i = 0; ; ++i) {
-        c = *var ? (*var)[i] : NULL;
-        EEPROM.write(addr + i, c);
-        if (!c) {
-            break;
-        }
-    }
-    return i + 1;
-}
-void XxxParam_fillHandlers(XxxParam* param, const char**) {
-    param->getValue = getValue_CHAR_STRING;
-    param->setValue = setValue_CHAR_STRING;
-    param->loadValue = loadValue_CHAR_STRING;
-    param->saveValue = saveValue_CHAR_STRING;
-}
-
-
-int cmpName_TABLE(const char* str, PGM_P paramName) {
-    return strncmp_P(str, paramName, strlen_P(paramName));
-}
-bool parseFullParamName_TABLE(char* fullParamName, int* index, char** subName) {
-    char* pos1 = strchr(fullParamName, '[');
-    char* pos2 = strchr(fullParamName, ']');
-    char* pos3 = strchr(fullParamName, '.');
+    XxxParam_FLOAT(float* var) : var(var) {}
     
-    if (!pos1 || !pos2 || !pos3) return false;
-    if (pos1 > pos2) return false;
-    if (pos3 != pos2 + 1) return false;
-
-    *pos2 = 0;
-    *index = atoi(pos1 + 1);
-    *pos2 = ']';
-
-    *subName = pos3 + 1;
-
-    return true;
-}
-bool getSubParam_TABLE(XxxParam* subParam, XxxParamTable* var, const char* fullParamName) {
-    int index;
-    char* subName;
-    if(!parseFullParamName_TABLE(fullParamName, &index, &subName)) {
-        Serial.println(F("Error: invalid param."));
-        return false;
-    }
-
-    for (uint8_t ii = 0; var->provider(subParam, ii, index); ++ii) {
-        if (strcmp_P(subName, subParam->name) == 0) {
-            return true;
+    String getValue() override {
+        char s[8];
+        int perc = 2;
+        {
+            if (*this->var < 10.) perc = 4;
+            else if (*this->var < 100.) perc = 3;
         }
+        dtostrf(*this->var, 0, perc, s);
+        clean_last_nullable(s);
+        return String(s);
     }
-    Serial.println(F("Error: param not found."));
-    return false;
+
+    void setValue(const char* value) override {
+        *this->var = atof(value);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(float* var) {
+    return new XxxParam_FLOAT(var);
 }
-String getValue_TABLE(XxxParamTable* var) {
-    uint8_t ii, j;
-    unsigned int i;
-    unsigned int rows_length = *(var->rows_length);
-    XxxParam param;
-    const uint8_t cellWeight = 6;
 
-    Serial.println();
-    Serial.print(F(" "));
-    for (ii = 0; var->provider(&param, ii, i); ++ii) {
-        for (j = cellWeight - strlen_P(param.name); j; --j) {
-            Serial.print(F(" "));
+
+class XxxParam_DOUBLE : public XxxParam {
+public:
+    double* var;
+
+    XxxParam_DOUBLE(double* var) : var(var) {}
+
+    String getValue() override {
+        char s[16];
+        int perc = 4;
+        {
+            if (*this->var < 10.) perc = 6;
+            else if (*this->var < 100.) perc = 5;
         }
-        Serial.print(FPSTR(param.name));
+        dtostrf(*this->var, 0, perc, s);
+        clean_last_nullable(s);
+        return String(s);
     }
 
-    for (i = 0; i < rows_length; ++i) {
+    void setValue(const char* value) override {
+        *this->var = strtod(value, NULL);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        return EEPROM_get(addr, this->var);
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        return EEPROM_put(addr, this->var);
+    }
+};
+
+XxxParam* createXxxParam(double* var) {
+    return new XxxParam_DOUBLE(var);
+}
+
+
+
+class XxxParam_STRING : public XxxParam {
+public:
+    String* var;
+
+    XxxParam_STRING(String* var) : var(var) {}
+
+    String getValue() override {
+        return String(*this->var);
+    }
+
+    void setValue(const char* value) override {
+        *this->var = value;
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        size_t i;
+        char c;
+        char* buf;
+        for (i = 0; EEPROM.read(addr + i); ++i);
+        buf = malloc(i + 1);
+        if (buf) {
+            for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
+            *this->var = buf;
+            free(buf);
+        }
+        return i + 1;
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        size_t i;
+        char c;
+        for (i = 0; ; ++i) {
+            c = (*this->var).c_str()[i];
+            EEPROM.write(addr + i, c);
+            if (!c) {
+                break;
+            }
+        }
+        return i + 1;
+    }
+};
+
+XxxParam* createXxxParam(String* var) {
+    return new XxxParam_STRING(var);
+}
+
+
+
+class XxxParam_CHAR_STRING : public XxxParam {
+public:
+    char** var;
+
+    XxxParam_CHAR_STRING(char** var) : var(var) {}
+
+    String getValue() override {
+        return *this->var ? String(*this->var) : String();
+    }
+
+    void setValue(const char* value) override {
+        free(*this->var);
+        *this->var = strdup(value);
+    }
+
+    size_t loadValue(unsigned int addr) override {
+        size_t i;
+        char c;
+        char* buf;
+        for (i = 0; EEPROM.read(addr + i); ++i);
+        buf = malloc(i + 1);
+        if (buf) {
+            for (i = 0; buf[i] = EEPROM.read(addr + i); ++i);
+            this->setValue(buf);
+            free(buf);
+        }
+        return i + 1;
+    }
+
+    size_t saveValue(unsigned int addr) override {
+        size_t i;
+        char c;
+        for (i = 0; ; ++i) {
+            c = *this->var ? (*this->var)[i] : NULL;
+            EEPROM.write(addr + i, c);
+            if (!c) {
+                break;
+            }
+        }
+        return i + 1;
+    }
+};
+
+XxxParam* createXxxParam(char** var) {
+    return new XxxParam_CHAR_STRING(var);
+}
+
+
+
+class XxxParam_TABLE : public XxxParam {
+public:
+    XxxParamTable* var;
+
+    XxxParam_TABLE(XxxParamTable* var) : var(var) {}
+
+    ~XxxParam_TABLE() {
+        delete this->var;
+    }
+
+    int cmpName(const char* str) {
+        return strncmp_P(str, this->name, strlen_P(this->name));
+    }
+
+    static bool parseFullParamName_TABLE(char* fullParamName, int* index, char** subName) {
+        char* pos1 = strchr(fullParamName, '[');
+        char* pos2 = strchr(fullParamName, ']');
+        char* pos3 = strchr(fullParamName, '.');
+        
+        if (!pos1 || !pos2 || !pos3) return false;
+        if (pos1 > pos2) return false;
+        if (pos3 != pos2 + 1) return false;
+
+        *pos2 = 0;
+        *index = atoi(pos1 + 1);
+        *pos2 = ']';
+
+        *subName = pos3 + 1;
+
+        return true;
+    }
+
+    XxxParam* getSubParam(const char* fullParamName) {
+        int index;
+        char* subName;
+        XxxParam* subParam;
+
+        if(!parseFullParamName_TABLE(fullParamName, &index, &subName)) {
+            Serial.println(F("Error: invalid param."));
+            return nullptr;
+        }
+
+        for (uint8_t ii = 0; subParam = this->var->provider(ii, index); ++ii) {
+            if (strcmp_P(subName, subParam->name) == 0) {
+                return subParam;
+            }
+        }
+        Serial.println(F("Error: param not found."));
+        return nullptr;
+    }
+
+    String getValue() {
+        uint8_t ii, j;
+        unsigned int i;
+        unsigned int rows_length = *this->var->rows_length;
+        XxxParam* subParam;
+        const uint8_t cellWeight = 6;
+
         Serial.println();
-        Serial.print(i);
-        for (ii = 0; var->provider(&param, ii, i); ++ii) {
-            String value = param.getValue(param.var);
-            for (j = cellWeight - value.length(); j; --j) {
+        Serial.print(F(" "));
+        for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+            for (j = cellWeight - strlen_P(subParam->name); j; --j) {
                 Serial.print(F(" "));
             }
-            Serial.print(value);
+            Serial.print(FPSTR(subParam->name));
+            delete subParam;
         }
+
+        for (i = 0; i < rows_length; ++i) {
+            Serial.println();
+            Serial.print(i);
+            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+                String value = subParam->getValue();
+                for (j = cellWeight - value.length(); j; --j) {
+                    Serial.print(F(" "));
+                }
+                Serial.print(value);
+                delete subParam;
+            }
+        }
+
+        return String("");
+    }
+    
+    void setValue(const char* value) {}
+
+    size_t loadValue(unsigned int addr) {
+        size_t size = 0;
+        uint8_t ii;
+        unsigned int i;
+        unsigned int rows_length;
+        XxxParam* subParam;
+
+        size += EEPROM_get(addr, this->var->rows_length);
+        rows_length = *(this->var->rows_length);
+
+        for (i = 0; i < rows_length; ++i) {
+            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+                size += subParam->loadValue(addr + size);
+                delete subParam;
+            }
+        }
+
+        return size;
     }
 
-    return String("");
-}
-size_t loadValue_TABLE(unsigned int addr, XxxParamTable* var) {
-    size_t size = 0;
-    uint8_t ii;
-    unsigned int i;
-    unsigned int rows_length;
-    XxxParam param;
+    size_t saveValue(unsigned int addr) {
+        size_t size = 0;
+        uint8_t ii;
+        unsigned int i;
+        unsigned int rows_length = *this->var->rows_length;
+        XxxParam* subParam;
 
-    size += EEPROM_get(addr, var->rows_length);
-    rows_length = *(var->rows_length);
+        size += EEPROM_put(addr, this->var->rows_length);
 
-    for (i = 0; i < rows_length; ++i) {
-        for (ii = 0; var->provider(&param, ii, i); ++ii) {
-            size += param.loadValue(addr + size, param.var);
+        for (i = 0; i < rows_length; ++i) {
+            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+                size += subParam->saveValue(addr + size);
+                delete subParam;
+            }
         }
+
+        return size;
     }
+};
 
-    return size;
-}
-size_t saveValue_TABLE(unsigned int addr, const XxxParamTable* var) {
-    size_t size = 0;
-    uint8_t ii;
-    unsigned int i;
-    unsigned int rows_length = *(var->rows_length);
-    XxxParam param;
-
-    size += EEPROM_put(addr, var->rows_length);
-
-    for (i = 0; i < rows_length; ++i) {
-        for (ii = 0; var->provider(&param, ii, i); ++ii) {
-            size += param.saveValue(addr + size, param.var);
-        }
-    }
-
-    return size;
-}
-void XxxParam_fillHandlers(XxxParam* param, const XxxParamTable*) {
-    param->cmpName = cmpName_TABLE;
-    param->getSubParam = getSubParam_TABLE;
-    param->getValue = getValue_TABLE;
-    param->setValue = nullptr;
-    param->loadValue = loadValue_TABLE;
-    param->saveValue = saveValue_TABLE;
+XxxParam* createXxxParam(XxxParamTable* var) {
+    return new XxxParam_TABLE(var);
 }
 
 
-
-
-typedef bool FnParamsGetter(XxxParam* buf, uint8_t index);
+typedef XxxParam* FnParamsGetter(uint8_t index);
 
 
 class XxxParamsIterrator {
@@ -449,8 +548,8 @@ protected:
 public:
     XxxParamsIterrator(FnParamsGetter* paramsGetter) : paramsGetter(paramsGetter) {}
 
-    bool next(XxxParam* buf) {
-        return paramsGetter(buf, index++);
+    XxxParam* next() {
+        return paramsGetter(index++);
     }
 
     void reset() {
@@ -467,21 +566,19 @@ public:
 
     void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
-        XxxParam buf;
-        while (itter.next(&buf)) {
-            printParam(buf);
-            if (buf.is_tmp_var) {
-                delete buf.var;
-            }
+        XxxParam* param;
+        while (param = itter.next()) {
+            printParam(param);
+            delete param;
         }
     }
 
 private:
-    void printParam(const XxxParam& param) {
+    static void printParam(const XxxParam* param) {
         Serial.println();
-        Serial.print(FPSTR(param.name));
+        Serial.print(FPSTR(param->name));
         Serial.print(" ");
-        Serial.print(param.getValue(param.var));
+        Serial.print(param->getValue());
         Serial.println();
     }
 };
@@ -498,25 +595,23 @@ public:
         Serial.println();
         
         XxxParamsIterrator itter(XxxParamsStore);
-        XxxParam param;
-        while (itter.next(&param)) {
-            int cmpRes = param.cmpName
-                ? param.cmpName(paramName, param.name)
-                : strcmp_P(paramName, param.name);
-
-            if (cmpRes == 0) {
-                if (param.getSubParam) {
-                    XxxParam subParam;
-                    if(param.getSubParam(&subParam, param.var, paramName)) {
-                        subParam.setValue(subParam.var, newParamValue);
+        XxxParam* param;
+        while (param = itter.next()) {
+            if (param->cmpName(paramName) == 0) {
+                if (param->is_tmp_var) {
+                    XxxParam* subParam;
+                    if(subParam = param->getSubParam(paramName)) {
+                        subParam->setValue(newParamValue);
+                        delete subParam;
                         Serial.println(F("OK"));
                     }
                 } else {
-                    param.setValue(param.var, newParamValue);
+                    param->setValue(newParamValue);
                     Serial.println(F("OK"));
                 }
                 break;
             }
+            delete param;
         }
     }
 };
@@ -530,10 +625,11 @@ public:
 
     void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
-        XxxParam param;
+        XxxParam* param;
         unsigned int addr = 0;
-        while (itter.next(&param)) {
-            addr += param.loadValue(addr, param.var);
+        while (param = itter.next()) {
+            addr += param->loadValue(addr);
+            delete param;
         }
         Serial.println(F("OK"));
     }
@@ -548,10 +644,11 @@ public:
 
     void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
-        XxxParam param;
+        XxxParam* param;
         unsigned int addr = 0;
-        while (itter.next(&param)) {
-            addr += param.saveValue(addr, param.var);
+        while (param = itter.next()) {
+            addr += param->saveValue(addr);
+            delete param;
         }
         Serial.println(F("OK"));
     }
@@ -584,7 +681,8 @@ bool XXX_parse_table_param_name_and_index(char* fullParamName, char** paramName,
     return true;
 }
 
-bool XXX_get_table_param_and_index(char* fullParamName, XxxParam* param, int* index) {
+XxxParam* XXX_get_table_param_and_index(char* fullParamName, int* index) {
+    XxxParam* param;
     char* paramName;
 
     if (!XXX_parse_table_param_name_and_index(fullParamName, &paramName, index)) {
@@ -596,7 +694,7 @@ bool XXX_get_table_param_and_index(char* fullParamName, XxxParam* param, int* in
 
     XxxParamsIterrator itter(XxxParamsStore);
     bool isParamFinded = false;
-    while (itter.next(param)) {
+    while (param = itter.next()) {
         int cmpRes = strcmp_P(paramName, param->name);
         if (cmpRes == 0) {
             isParamFinded = true;
@@ -612,7 +710,7 @@ bool XXX_get_table_param_and_index(char* fullParamName, XxxParam* param, int* in
 
     free(paramName);
 
-    return isParamFinded;
+    return param;
 }
 
 class CmdInsert : public XXX_CmdAbstract {
@@ -623,26 +721,28 @@ public:
 
     void run(char** args, int args_len) override {
         int row_index;
-        XxxParam param;
-        
-        if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+        XxxParam_TABLE* param;
+
+        if (!(param = XXX_get_table_param_and_index(args[0], &row_index))) {
             return;
         }
 
-        XxxParamTable* table = param.var;
+        XxxParamTable* table = param->var;
 
         if (row_index < 0 || row_index > *table->rows_length) {
             Serial.print(F("Error: index "));
             Serial.print(row_index);
             Serial.println(F(" is invalid."));
+            delete param;
             return;
         }
 
         if (
-            !table->provider(nullptr, args_len - 2, 0)
-            || table->provider(nullptr, args_len - 1, 0)
+            !table->hasSubParam(args_len - 2, 0)
+            || table->hasSubParam(args_len - 1, 0)
         ) {
             Serial.print(F("Error: invalid args count."));
+            delete param;
             return;
         }
 
@@ -655,15 +755,17 @@ public:
         }
         ++*table->rows_length;
 
-        XxxParam subParam;
+        XxxParam* subParam;
         int col_index;
         for (int i = 1; i < args_len; ++i) {
             col_index = i - 1;
-            table->provider(&subParam, col_index, row_index);
-            subParam.setValue(subParam.var, args[i]);
+            subParam = table->provider(col_index, row_index);
+            subParam->setValue(args[i]);
+            delete subParam;
         }
 
         Serial.println(F("OK"));
+        delete param;
     }
 };
 
@@ -673,19 +775,20 @@ class CmdDelete : public XXX_CmdAbstract {
     }
 
     void run(char** args, int args_len) override {
-            int row_index;
-        XxxParam param;
+        int row_index;
+        XxxParam_TABLE* param;
         
-        if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+        if (!(param = XXX_get_table_param_and_index(args[0], &row_index))) {
             return;
         }
 
-        XxxParamTable* table = param.var;
+        XxxParamTable* table = param->var;
 
         if (row_index < 0 || row_index > *table->rows_length - 1) {
             Serial.print(F("Error: index "));
             Serial.print(row_index);
             Serial.println(F(" is invalid."));
+            delete param;
             return;
         }
 
@@ -697,6 +800,7 @@ class CmdDelete : public XXX_CmdAbstract {
         --*table->rows_length;
 
         Serial.println(F("OK"));
+        delete param;
     }
 };
 
@@ -750,7 +854,7 @@ bool XXX_inited = false;
 
 void XXX_init() {
     XxxParamsIterrator itter(XxxParamsStore);
-    while (itter.next(nullptr)) {}
+    while (itter.next()) {}
 }
 
 
@@ -819,56 +923,47 @@ struct XXX {
 
 
 #define FM_PARAM_TABLE_COLUMN(N, i, p, val) \
-                                                        case (N-i-1): \
-                                                            if (_param) { \
-                                                                _param->name = PSTR(#val); \
-                                                                _param->var = &(p[row_index].val); \
-                                                                XxxParam_fillHandlers(_param, &(p[row_index].val)); \
-                                                            } \
-                                                            break;
+                                                        case (N-i-1): { \
+                                                            subParam = createXxxParam(&(p[row_index].val)); \
+                                                            subParam->name = PSTR(#val); \
+                                                        } break;
 
 
 #define BEGIN_PARAMS() \
-                                    bool XxxParamsStore(XxxParam* param, uint8_t index) { \
+                                    XxxParam* XxxParamsStore(uint8_t index) { \
+                                        XxxParam* param; \
                                         const uint8_t COUNTER_BASE = __COUNTER__ + 1; \
                                         switch (index) {
 #define PARAM(var_name) \
-                                            case (__COUNTER__ - COUNTER_BASE): \
-                                                if (param) { \
-                                                    param->name = PSTR(#var_name); \
-                                                    param->var = &var_name; \
-                                                    param->is_tmp_var = false; \
-                                                    param->cmpName = nullptr; \
-                                                    param->getSubParam = nullptr; \
-                                                    XxxParam_fillHandlers(param, &var_name); \
-                                                } \
-                                                break;
+                                            case (__COUNTER__ - COUNTER_BASE): { \
+                                                param = createXxxParam(&var_name); \
+                                                param->name = PSTR(#var_name); \
+                                                param->is_tmp_var = false; \
+                                            } break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
-                                            case (__COUNTER__ - COUNTER_BASE): \
+                                            case (__COUNTER__ - COUNTER_BASE): { \
                                                 hasTables = true; \
-                                                if (param) { \
-                                                    XxxParamTable* table = new XxxParamTable(&rows_length); \
-                                                    table->var = &var_name; \
-                                                    table->row_size = sizeof(var_name[0]); \
-                                                    table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
-                                                        switch (col_index) { \
-                                                            FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
-                                                            default: \
-                                                                return false; \
-                                                        } \
-                                                        return true; \
-                                                    }; \
-                                                    param->name = PSTR(#var_name); \
-                                                    param->var = table; \
-                                                    param->is_tmp_var = true; \
-                                                    XxxParam_fillHandlers(param, table); \
-                                                } \
-                                                break;
+                                                XxxParamTable* table = new XxxParamTable(&rows_length); \
+                                                table->var = &var_name; \
+                                                table->row_size = sizeof(var_name[0]); \
+                                                table->provider = [](uint8_t col_index, unsigned int row_index) -> XxxParam* { \
+                                                    XxxParam* subParam; \
+                                                    switch (col_index) { \
+                                                        FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
+                                                        default: \
+                                                            return nullptr; \
+                                                    } \
+                                                    return subParam; \
+                                                }; \
+                                                param = createXxxParam(table); \
+                                                param->name = PSTR(#var_name); \
+                                                param->is_tmp_var = true; \
+                                            } break;
 #define END_PARAMS() \
                                             default: \
-                                                return false; \
+                                                return nullptr; \
                                         } \
-                                        return true; \
+                                        return param; \
                                     }
 
 
