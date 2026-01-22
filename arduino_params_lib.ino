@@ -58,6 +58,8 @@ typedef bool XxxParamTable_provider_fn(XxxParam* param, uint8_t col_index, unsig
 class XxxParamTable {
 public:
     unsigned int* rows_length;
+    void* var;
+    size_t row_size;
     XxxParamTable_provider_fn* provider = nullptr;
 
     XxxParamTable(unsigned int* rows_length) : rows_length(rows_length) {}
@@ -536,11 +538,199 @@ public:
 };
 
 
-class XXX {
-public:
+
+typedef void CmdHandler(char** args, int args_len);
+
+CmdHandler* XXX_cmd_insert = nullptr;
+CmdHandler* XXX_cmd_delete = nullptr;
+
+bool XXX_parse_table_param_name_and_index(char* fullParamName, char** paramName, int* index) {
+    char* pos1 = strchr(fullParamName, '[');
+    char* pos2 = strchr(fullParamName, ']');
+    if (!pos1 || !pos2) return false;
+    if (pos2 < pos1) return false;
+    if (pos2[1] != NULL) return false;
+    if (pos1 == fullParamName) return false;
+
+    size_t paramName_size = pos1 - fullParamName + 1;
+    *paramName = malloc(paramName_size);
+    strlcpy(*paramName, fullParamName, paramName_size);
+    
+    size_t index_str_size = pos2 - pos1;
+    char* index_str = malloc(index_str_size);
+    strlcpy(index_str, &pos1[1], index_str_size);
+    *index = atoi(index_str);
+    free(index_str);
+
+    return true;
+}
+
+bool XXX_get_table_param_and_index(char* fullParamName, XxxParam* param, int* index) {
+    char* paramName;
+
+    if (!XXX_parse_table_param_name_and_index(fullParamName, &paramName, index)) {
+        Serial.print(F("Error: arg "));
+        Serial.print(fullParamName);
+        Serial.println(F(" is invalid."));
+        return;
+    }
+
+    XxxParamsIterrator itter(XxxParamsStore);
+    bool isParamFinded = false;
+    while (itter.next(param)) {
+        int cmpRes = strcmp_P(paramName, param->name);
+        if (cmpRes == 0) {
+            isParamFinded = true;
+            break;
+        }
+    }
+
+    if (!isParamFinded) {
+        Serial.print(F("Error: param "));
+        Serial.print(paramName);
+        Serial.println(F(" not found."));
+    }
+
+    free(paramName);
+
+    return isParamFinded;
+}
+
+void XXX_cmd_insert_impl(char** args, int args_len) {
+    int row_index;
+    XxxParam param;
+    
+    if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+        return;
+    }
+
+    XxxParamTable* table = param.var;
+
+    if (row_index < 0 || row_index > *table->rows_length) {
+        Serial.print(F("Error: index "));
+        Serial.print(row_index);
+        Serial.println(F(" is invalid."));
+        return;
+    }
+
+    if (
+        !table->provider(nullptr, args_len - 2, 0)
+        || table->provider(nullptr, args_len - 1, 0)
+    ) {
+        Serial.print(F("Error: invalid args count."));
+        return;
+    }
+
+    if (row_index < *table->rows_length) {
+        memmove(
+            table->var + table->row_size * (row_index + 1),
+            table->var + table->row_size * row_index,
+            table->row_size * (*table->rows_length - row_index)
+        );
+    }
+    ++*table->rows_length;
+
+    XxxParam subParam;
+    int col_index;
+    for (int i = 1; i < args_len; ++i) {
+        col_index = i - 1;
+        table->provider(&subParam, col_index, row_index);
+        subParam.setValue(subParam.var, args[i]);
+    }
+
+    Serial.println(F("OK"));
+}
+
+void XXX_cmd_delete_impl(char** args, int args_len) {
+        int row_index;
+    XxxParam param;
+    
+    if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+        return;
+    }
+
+    XxxParamTable* table = param.var;
+
+    if (row_index < 0 || row_index > *table->rows_length - 1) {
+        Serial.print(F("Error: index "));
+        Serial.print(row_index);
+        Serial.println(F(" is invalid."));
+        return;
+    }
+
+    memmove(
+        table->var + table->row_size * row_index,
+        table->var + table->row_size * (row_index + 1),
+        table->row_size * (*table->rows_length - row_index - 1)
+    );
+    --*table->rows_length;
+
+    Serial.println(F("OK"));
+}
+
+
+
+char** str_split(char* str, int& res_len) {    
+    int i, j;
+    int last_whitespace_i;
+
+    j = 0;
+    if (str) {
+        last_whitespace_i = -1;
+        for (i = 0; str[i]; ++i) {
+            if (str[i] != ' ' && last_whitespace_i == i - 1) {
+                ++j;
+            }
+            if (str[i] == ' ') {
+                last_whitespace_i = i;
+            }
+        }
+    }
+
+    res_len = j;
+    if (!res_len) {
+        return nullptr;
+    }
+
+    char** res_arr = malloc(sizeof(char*) * j);
+    if (!res_arr) {
+        Serial.println(F("Error: no memory!"));
+        return nullptr;
+    }
+
+    j = 0;
+    last_whitespace_i = -1;
+    for (i = 0; str[i]; ++i) {
+        if (str[i] != ' ' && last_whitespace_i == i - 1) {
+            res_arr[j] = &str[i];
+            ++j;
+        }
+        if (str[i] == ' ') {
+            str[i] = NULL;
+            last_whitespace_i = i;
+        }
+    }
+
+    return res_arr;
+}
+
+bool XXX_inited = false;
+
+void XXX_init() {
+    XxxParamsIterrator itter(XxxParamsStore);
+    while (itter.next(nullptr)) {}
+}
+
+struct XXX {
     void update() {
         if (Serial.available()) {
             char* line = strdup(Serial.readStringUntil('\n').c_str());
+
+            if (!XXX_inited) {
+                XXX_init();
+                XXX_inited = true;
+            }
+
             char* p = strpbrk_P(line, PSTR("= "));
             if (p && p[0] == '=') {
                 p[0] = NULL;
@@ -550,17 +740,34 @@ public:
                 CmdSetParam cmd;
                 cmd.run(paramName, newParamValue);
             } else {
-                if (strcmp_P(line, PSTR("params")) == 0) {
-                    CmdParams cmd;
-                    cmd.run();
+                char* cmdName;
+                int args_len;
+                if (p) {
+                    p[0] = NULL;
+                    cmdName = line;
+                    p = &p[1];
                 }
-                if (strcmp_P(line, PSTR("load")) == 0) {
-                    CmdLoad cmd;
-                    cmd.run();
-                }
-                if (strcmp_P(line, PSTR("save")) == 0) {
-                    CmdSave cmd;
-                    cmd.run();
+                char** args = str_split(p, args_len);
+                if (args || !args_len) {
+                    if (strcmp_P(cmdName, PSTR("params")) == 0) {
+                        CmdParams cmd;
+                        cmd.run();
+                    }
+                    if (strcmp_P(cmdName, PSTR("load")) == 0) {
+                        CmdLoad cmd;
+                        cmd.run();
+                    }
+                    if (strcmp_P(cmdName, PSTR("save")) == 0) {
+                        CmdSave cmd;
+                        cmd.run();
+                    }
+                    if (XXX_cmd_insert && strcmp_P(cmdName, PSTR("insert")) == 0) {
+                        (*XXX_cmd_insert)(args, args_len);
+                    }
+                    if (XXX_cmd_delete && strcmp_P(cmdName, PSTR("delete")) == 0) {
+                        (*XXX_cmd_delete)(args, args_len);
+                    }
+                    free(args);
                 }
             }
             free(line);
@@ -574,9 +781,11 @@ public:
 
 #define FM_PARAM_TABLE_COLUMN(N, i, p, val) \
                                                         case (N-i-1): \
-                                                            _param->name = PSTR(#val); \
-                                                            _param->var = &(p[row_index].val); \
-                                                            XxxParam_fillHandlers(_param, &(p[row_index].val)); \
+                                                            if (_param) { \
+                                                                _param->name = PSTR(#val); \
+                                                                _param->var = &(p[row_index].val); \
+                                                                XxxParam_fillHandlers(_param, &(p[row_index].val)); \
+                                                            } \
                                                             break;
 
 
@@ -586,29 +795,37 @@ public:
                                         switch (index) {
 #define PARAM(var_name) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                param->name = PSTR(#var_name); \
-                                                param->var = &var_name; \
-                                                param->is_tmp_var = false; \
-                                                param->cmpName = nullptr; \
-                                                param->getSubParam = nullptr; \
-                                                XxxParam_fillHandlers(param, &var_name); \
+                                                if (param) { \
+                                                    param->name = PSTR(#var_name); \
+                                                    param->var = &var_name; \
+                                                    param->is_tmp_var = false; \
+                                                    param->cmpName = nullptr; \
+                                                    param->getSubParam = nullptr; \
+                                                    XxxParam_fillHandlers(param, &var_name); \
+                                                } \
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
-                                            case (__COUNTER__ - COUNTER_BASE): { \
-                                                XxxParamTable* table = new XxxParamTable(&rows_length); \
-                                                table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
-                                                    switch (col_index) { \
-                                                        FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
-                                                        default: \
-                                                            return false; \
-                                                    } \
-                                                    return true; \
-                                                }; \
-                                                param->name = PSTR(#var_name); \
-                                                param->var = table; \
-                                                param->is_tmp_var = true; \
-                                                XxxParam_fillHandlers(param, table); \
-                                            } break;
+                                            case (__COUNTER__ - COUNTER_BASE): \
+                                                XXX_cmd_insert = XXX_cmd_insert_impl; \
+                                                XXX_cmd_delete = XXX_cmd_delete_impl; \
+                                                if (param) { \
+                                                    XxxParamTable* table = new XxxParamTable(&rows_length); \
+                                                    table->var = &var_name; \
+                                                    table->row_size = sizeof(var_name[0]); \
+                                                    table->provider = [](XxxParam* _param, uint8_t col_index, unsigned int row_index) -> bool { \
+                                                        switch (col_index) { \
+                                                            FOR_MACRO(FM_PARAM_TABLE_COLUMN, var_name, __VA_ARGS__) \
+                                                            default: \
+                                                                return false; \
+                                                        } \
+                                                        return true; \
+                                                    }; \
+                                                    param->name = PSTR(#var_name); \
+                                                    param->var = table; \
+                                                    param->is_tmp_var = true; \
+                                                    XxxParam_fillHandlers(param, table); \
+                                                } \
+                                                break;
 #define END_PARAMS() \
                                             default: \
                                                 return false; \
