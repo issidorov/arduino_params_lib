@@ -41,7 +41,7 @@ typedef bool FnSubParamGetter(XxxParam* subParam, void* var, const char* fullPar
 class XXX_CmdAbstract {
 public:
     virtual PGM_P getName() = 0;
-    virtual void run() = 0;
+    virtual void run(char** args, int args_len) = 0;
 };
 
 
@@ -465,7 +465,7 @@ public:
         return PSTR("params");
     }
 
-    void run() override {
+    void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam buf;
         while (itter.next(&buf)) {
@@ -528,7 +528,7 @@ public:
         return PSTR("load");
     }
 
-    void run() override {
+    void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam param;
         unsigned int addr = 0;
@@ -546,7 +546,7 @@ public:
         return PSTR("save");
     }
 
-    void run() override {
+    void run(char** args, int args_len) override {
         XxxParamsIterrator itter(XxxParamsStore);
         XxxParam param;
         unsigned int addr = 0;
@@ -561,8 +561,7 @@ public:
 
 typedef void CmdHandler(char** args, int args_len);
 
-CmdHandler* XXX_cmd_insert = nullptr;
-CmdHandler* XXX_cmd_delete = nullptr;
+bool hasTables = false;
 
 bool XXX_parse_table_param_name_and_index(char* fullParamName, char** paramName, int* index) {
     char* pos1 = strchr(fullParamName, '[');
@@ -616,77 +615,90 @@ bool XXX_get_table_param_and_index(char* fullParamName, XxxParam* param, int* in
     return isParamFinded;
 }
 
-void XXX_cmd_insert_impl(char** args, int args_len) {
-    int row_index;
-    XxxParam param;
-    
-    if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
-        return;
+class CmdInsert : public XXX_CmdAbstract {
+public:
+    PGM_P getName() override {
+        return PSTR("insert");
     }
 
-    XxxParamTable* table = param.var;
-
-    if (row_index < 0 || row_index > *table->rows_length) {
-        Serial.print(F("Error: index "));
-        Serial.print(row_index);
-        Serial.println(F(" is invalid."));
-        return;
-    }
-
-    if (
-        !table->provider(nullptr, args_len - 2, 0)
-        || table->provider(nullptr, args_len - 1, 0)
-    ) {
-        Serial.print(F("Error: invalid args count."));
-        return;
-    }
-
-    if (row_index < *table->rows_length) {
-        memmove(
-            table->var + table->row_size * (row_index + 1),
-            table->var + table->row_size * row_index,
-            table->row_size * (*table->rows_length - row_index)
-        );
-    }
-    ++*table->rows_length;
-
-    XxxParam subParam;
-    int col_index;
-    for (int i = 1; i < args_len; ++i) {
-        col_index = i - 1;
-        table->provider(&subParam, col_index, row_index);
-        subParam.setValue(subParam.var, args[i]);
-    }
-
-    Serial.println(F("OK"));
-}
-
-void XXX_cmd_delete_impl(char** args, int args_len) {
+    void run(char** args, int args_len) override {
         int row_index;
-    XxxParam param;
-    
-    if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
-        return;
+        XxxParam param;
+        
+        if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+            return;
+        }
+
+        XxxParamTable* table = param.var;
+
+        if (row_index < 0 || row_index > *table->rows_length) {
+            Serial.print(F("Error: index "));
+            Serial.print(row_index);
+            Serial.println(F(" is invalid."));
+            return;
+        }
+
+        if (
+            !table->provider(nullptr, args_len - 2, 0)
+            || table->provider(nullptr, args_len - 1, 0)
+        ) {
+            Serial.print(F("Error: invalid args count."));
+            return;
+        }
+
+        if (row_index < *table->rows_length) {
+            memmove(
+                table->var + table->row_size * (row_index + 1),
+                table->var + table->row_size * row_index,
+                table->row_size * (*table->rows_length - row_index)
+            );
+        }
+        ++*table->rows_length;
+
+        XxxParam subParam;
+        int col_index;
+        for (int i = 1; i < args_len; ++i) {
+            col_index = i - 1;
+            table->provider(&subParam, col_index, row_index);
+            subParam.setValue(subParam.var, args[i]);
+        }
+
+        Serial.println(F("OK"));
+    }
+};
+
+class CmdDelete : public XXX_CmdAbstract {
+    PGM_P getName() override {
+        return PSTR("delete");
     }
 
-    XxxParamTable* table = param.var;
+    void run(char** args, int args_len) override {
+            int row_index;
+        XxxParam param;
+        
+        if (!XXX_get_table_param_and_index(args[0], &param, &row_index)) {
+            return;
+        }
 
-    if (row_index < 0 || row_index > *table->rows_length - 1) {
-        Serial.print(F("Error: index "));
-        Serial.print(row_index);
-        Serial.println(F(" is invalid."));
-        return;
+        XxxParamTable* table = param.var;
+
+        if (row_index < 0 || row_index > *table->rows_length - 1) {
+            Serial.print(F("Error: index "));
+            Serial.print(row_index);
+            Serial.println(F(" is invalid."));
+            return;
+        }
+
+        memmove(
+            table->var + table->row_size * row_index,
+            table->var + table->row_size * (row_index + 1),
+            table->row_size * (*table->rows_length - row_index - 1)
+        );
+        --*table->rows_length;
+
+        Serial.println(F("OK"));
     }
-
-    memmove(
-        table->var + table->row_size * row_index,
-        table->var + table->row_size * (row_index + 1),
-        table->row_size * (*table->rows_length - row_index - 1)
-    );
-    --*table->rows_length;
-
-    Serial.println(F("OK"));
-}
+};
 
 
 
@@ -750,6 +762,10 @@ XXX_CmdAbstract* getCmd(int index) {
             return new CmdLoad();
         case 2:
             return new CmdSave();
+        case 3:
+            return hasTables ? new CmdInsert() : nullptr;
+        case 4:
+            return hasTables ? new CmdDelete() : nullptr;
         default:
             return nullptr;
     }
@@ -786,16 +802,9 @@ struct XXX {
                     XXX_CmdAbstract* cmd;
                     for (int i = 0; cmd = getCmd(i); ++i) {
                         if (strcmp_P(cmdName, cmd->getName()) == 0) {
-                            cmd->run();
+                            cmd->run(args, args_len);
                         }
                         delete cmd;
-                    }
-
-                    if (XXX_cmd_insert && strcmp_P(cmdName, PSTR("insert")) == 0) {
-                        (*XXX_cmd_insert)(args, args_len);
-                    }
-                    if (XXX_cmd_delete && strcmp_P(cmdName, PSTR("delete")) == 0) {
-                        (*XXX_cmd_delete)(args, args_len);
                     }
                     free(args);
                 }
@@ -836,8 +845,7 @@ struct XXX {
                                                 break;
 #define PARAM_TABLE(var_name, rows_length, ...) \
                                             case (__COUNTER__ - COUNTER_BASE): \
-                                                XXX_cmd_insert = XXX_cmd_insert_impl; \
-                                                XXX_cmd_delete = XXX_cmd_delete_impl; \
+                                                hasTables = true; \
                                                 if (param) { \
                                                     XxxParamTable* table = new XxxParamTable(&rows_length); \
                                                     table->var = &var_name; \
