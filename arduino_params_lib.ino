@@ -740,11 +740,10 @@ struct XXX {
                 CmdSetParam cmd;
                 cmd.run(paramName, newParamValue);
             } else {
-                char* cmdName;
                 int args_len;
+                char* cmdName = line;
                 if (p) {
                     p[0] = NULL;
-                    cmdName = line;
                     p = &p[1];
                 }
                 char** args = str_split(p, args_len);
