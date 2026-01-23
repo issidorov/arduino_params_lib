@@ -6,6 +6,8 @@
 
 XXX xxx;
 
+static bool hasTables = false;
+
 
 class XXX_CmdAbstract {
 public:
@@ -39,6 +41,23 @@ public:
     virtual size_t loadValue(unsigned int addr) = 0;
 
     virtual size_t saveValue(unsigned int addr) = 0;
+};
+
+
+class XxxParamTable {
+public:
+    unsigned int* rows_length;
+    void* var;
+    size_t row_size;
+    XxxParamTable_provider_fn* provider = nullptr;
+
+    XxxParamTable(unsigned int* rows_length) : rows_length(rows_length) {}
+
+    bool hasSubParam(uint8_t col_index, unsigned int row_index) {
+        XxxParam* subParam = this->provider(col_index, row_index);
+        delete subParam;
+        return subParam != nullptr;
+    }
 };
 
 
@@ -494,10 +513,18 @@ public:
     }
 };
 
-XxxParam* createXxxParam(PGM_P name, XxxParamTable* var) {
+XxxParam* createXxxTableParam(PGM_P name, void* var, unsigned int* rows_length, size_t row_size, XxxParamTable_provider_fn* provider) {
+    hasTables = true;
+
+    XxxParamTable* table = new XxxParamTable(rows_length);
+    table->var = var;
+    table->row_size = row_size;
+    table->provider = provider;
+
     auto param = new XxxParam_TABLE();
     param->name = name;
-    param->var = var;
+    param->var = table;
+
     return param;
 }
 
@@ -621,8 +648,6 @@ public:
 
 
 typedef void CmdHandler(char** args, int args_len);
-
-bool hasTables = false;
 
 bool XXX_parse_table_param_name_and_index(char* fullParamName, char** paramName, int* index) {
     char* pos1 = strchr(fullParamName, '[');
