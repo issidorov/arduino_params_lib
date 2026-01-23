@@ -14,6 +14,28 @@ public:
 };
 
 
+class XxxParam {
+public:
+    PGM_P name;
+    bool is_tmp_var = false;
+
+    virtual int cmpName(const char* str) {
+        return strcmp_P(str, this->name);
+    }
+
+    virtual XxxParam* getSubParam(const char* fullParamName) {
+        return nullptr;
+    }
+
+    virtual String getValue() = 0;
+
+    virtual void setValue(const char* value) = 0;
+
+    virtual size_t loadValue(unsigned int addr) = 0;
+
+    virtual size_t saveValue(unsigned int addr) = 0;
+};
+
 
 template< typename T >
 size_t EEPROM_get( unsigned int addr, T* value ) {
@@ -41,8 +63,6 @@ class XxxParam_INT8 : public XxxParam {
 public:
     int8_t* var;
 
-    XxxParam_INT8(int8_t* var) : var(var) {}
-
     String getValue() override {
         return String(*this->var);
     }
@@ -60,8 +80,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(int8_t* var) {
-    return new XxxParam_INT8(var);
+XxxParam* createXxxParam(PGM_P name, int8_t* var) {
+    auto param = new XxxParam_INT8();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -70,8 +93,6 @@ class XxxParam_UINT8 : public XxxParam {
 public:
     uint8_t* var;
 
-    XxxParam_UINT8(uint8_t* var) : var(var) {}
-
     String getValue() override {
         return String(*this->var);
     }
@@ -89,8 +110,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(uint8_t* var) {
-    return new XxxParam_UINT8(var);
+XxxParam* createXxxParam(PGM_P name, uint8_t* var) {
+    auto param = new XxxParam_UINT8();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -98,8 +122,6 @@ class XxxParam_INT16 : public XxxParam {
 public:
     int16_t* var;
 
-    XxxParam_INT16(int16_t* var) : var(var) {}
-
     String getValue() override {
         return String(*this->var);
     }
@@ -117,8 +139,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(int16_t* var) {
-    return new XxxParam_INT16(var);
+XxxParam* createXxxParam(PGM_P name, int16_t* var) {
+    auto param = new XxxParam_INT16();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -126,8 +151,6 @@ class XxxParam_UINT16 : public XxxParam {
 public:
     uint16_t* var;
 
-    XxxParam_UINT16(uint16_t* var) : var(var) {}
-
     String getValue() override {
         return String(*this->var);
     }
@@ -142,8 +165,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(uint16_t* var) {
-    return new XxxParam_INT16(var);
+XxxParam* createXxxParam(PGM_P name, uint16_t* var) {
+    auto param = new XxxParam_UINT16();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -165,8 +191,6 @@ class XxxParam_FLOAT : public XxxParam {
 public:
     float* var;
 
-    XxxParam_FLOAT(float* var) : var(var) {}
-    
     String getValue() override {
         char s[8];
         int perc = 2;
@@ -192,16 +216,17 @@ public:
     }
 };
 
-XxxParam* createXxxParam(float* var) {
-    return new XxxParam_FLOAT(var);
+XxxParam* createXxxParam(PGM_P name, float* var) {
+    auto param = new XxxParam_FLOAT();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
 class XxxParam_DOUBLE : public XxxParam {
 public:
     double* var;
-
-    XxxParam_DOUBLE(double* var) : var(var) {}
 
     String getValue() override {
         char s[16];
@@ -228,8 +253,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(double* var) {
-    return new XxxParam_DOUBLE(var);
+XxxParam* createXxxParam(PGM_P name, double* var) {
+    auto param = new XxxParam_DOUBLE();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -237,8 +265,6 @@ XxxParam* createXxxParam(double* var) {
 class XxxParam_STRING : public XxxParam {
 public:
     String* var;
-
-    XxxParam_STRING(String* var) : var(var) {}
 
     String getValue() override {
         return String(*this->var);
@@ -276,8 +302,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(String* var) {
-    return new XxxParam_STRING(var);
+XxxParam* createXxxParam(PGM_P name, String* var) {
+    auto param = new XxxParam_STRING();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -285,8 +314,6 @@ XxxParam* createXxxParam(String* var) {
 class XxxParam_CHAR_STRING : public XxxParam {
 public:
     char** var;
-
-    XxxParam_CHAR_STRING(char** var) : var(var) {}
 
     String getValue() override {
         return *this->var ? String(*this->var) : String();
@@ -325,8 +352,11 @@ public:
     }
 };
 
-XxxParam* createXxxParam(char** var) {
-    return new XxxParam_CHAR_STRING(var);
+XxxParam* createXxxParam(PGM_P name, char** var) {
+    auto param = new XxxParam_CHAR_STRING();
+    param->name = name;
+    param->var = var;
+    return param;
 }
 
 
@@ -334,8 +364,6 @@ XxxParam* createXxxParam(char** var) {
 class XxxParam_TABLE : public XxxParam {
 public:
     XxxParamTable* var;
-
-    XxxParam_TABLE(XxxParamTable* var) : var(var) {}
 
     ~XxxParam_TABLE() {
         delete this->var;
@@ -457,8 +485,12 @@ public:
     }
 };
 
-XxxParam* createXxxParam(XxxParamTable* var) {
-    return new XxxParam_TABLE(var);
+XxxParam* createXxxParam(PGM_P name, XxxParamTable* var) {
+    auto param = new XxxParam_TABLE();
+    param->name = name;
+    param->var = var;
+    param->is_tmp_var = true;
+    return param;
 }
 
 
