@@ -14,17 +14,22 @@ public:
 };
 
 
+enum class Type {
+    UNKNOW,
+    XxxParam_TABLE,
+};
+
+
 class XxxParam {
 public:
     PGM_P name;
-    bool is_tmp_var = false;
 
     virtual int cmpName(const char* str) {
         return strcmp_P(str, this->name);
     }
 
-    virtual XxxParam* getSubParam(const char* fullParamName) {
-        return nullptr;
+    virtual Type type() {
+        return Type::UNKNOW;
     }
 
     virtual String getValue() = 0;
@@ -365,6 +370,10 @@ class XxxParam_TABLE : public XxxParam {
 public:
     XxxParamTable* var;
 
+    Type type() override {
+        return Type::XxxParam_TABLE;
+    }
+
     ~XxxParam_TABLE() {
         delete this->var;
     }
@@ -489,7 +498,6 @@ XxxParam* createXxxParam(PGM_P name, XxxParamTable* var) {
     auto param = new XxxParam_TABLE();
     param->name = name;
     param->var = var;
-    param->is_tmp_var = true;
     return param;
 }
 
@@ -554,9 +562,9 @@ public:
         XxxParam* param;
         while (param = itter.next()) {
             if (param->cmpName(paramName) == 0) {
-                if (param->is_tmp_var) {
-                    XxxParam* subParam;
-                    if(subParam = param->getSubParam(paramName)) {
+                if (param->type() == Type::XxxParam_TABLE) {
+                    auto tableParam = (XxxParam_TABLE*)param;
+                    if(XxxParam* subParam = tableParam->getSubParam(paramName)) {
                         subParam->setValue(newParamValue);
                         delete subParam;
                         Serial.println(F("OK"));
