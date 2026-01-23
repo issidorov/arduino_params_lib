@@ -44,23 +44,6 @@ public:
 };
 
 
-class XxxParamTable {
-public:
-    unsigned int* rows_length;
-    void* var;
-    size_t row_size;
-    XxxParamTable_provider_fn* provider = nullptr;
-
-    XxxParamTable(unsigned int* rows_length) : rows_length(rows_length) {}
-
-    bool hasSubParam(uint8_t col_index, unsigned int row_index) {
-        XxxParam* subParam = this->provider(col_index, row_index);
-        delete subParam;
-        return subParam != nullptr;
-    }
-};
-
-
 template< typename T >
 size_t EEPROM_get( unsigned int addr, T* value ) {
     unsigned int i;
@@ -387,14 +370,13 @@ XxxParam* createXxxParam(PGM_P name, char** var) {
 
 class XxxParam_TABLE : public XxxParam {
 public:
-    XxxParamTable* var;
+    void* var;
+    unsigned int* rows_length;
+    size_t row_size;
+    XxxParamTable_provider_fn* provider;
 
     Type type() override {
         return Type::XxxParam_TABLE;
-    }
-
-    ~XxxParam_TABLE() {
-        delete this->var;
     }
 
     int cmpName(const char* str) {
@@ -419,6 +401,12 @@ public:
         return true;
     }
 
+    bool hasSubParam(uint8_t col_index, unsigned int row_index) {
+        XxxParam* subParam = this->provider(col_index, row_index);
+        delete subParam;
+        return subParam != nullptr;
+    }
+
     XxxParam* getSubParam(const char* fullParamName) {
         int index;
         char* subName;
@@ -429,7 +417,7 @@ public:
             return nullptr;
         }
 
-        for (uint8_t ii = 0; subParam = this->var->provider(ii, index); ++ii) {
+        for (uint8_t ii = 0; subParam = this->provider(ii, index); ++ii) {
             if (strcmp_P(subName, subParam->name) == 0) {
                 return subParam;
             }
@@ -441,13 +429,13 @@ public:
     String getValue() {
         uint8_t ii, j;
         unsigned int i;
-        unsigned int rows_length = *this->var->rows_length;
+        unsigned int rows_length = *this->rows_length;
         XxxParam* subParam;
         const uint8_t cellWeight = 6;
 
         Serial.println();
         Serial.print(F(" "));
-        for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+        for (ii = 0; subParam = this->provider(ii, i); ++ii) {
             for (j = cellWeight - strlen_P(subParam->name); j; --j) {
                 Serial.print(F(" "));
             }
@@ -458,7 +446,7 @@ public:
         for (i = 0; i < rows_length; ++i) {
             Serial.println();
             Serial.print(i);
-            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+            for (ii = 0; subParam = this->provider(ii, i); ++ii) {
                 String value = subParam->getValue();
                 for (j = cellWeight - value.length(); j; --j) {
                     Serial.print(F(" "));
@@ -480,11 +468,11 @@ public:
         unsigned int rows_length;
         XxxParam* subParam;
 
-        size += EEPROM_get(addr, this->var->rows_length);
-        rows_length = *(this->var->rows_length);
+        size += EEPROM_get(addr, this->rows_length);
+        rows_length = *(this->rows_length);
 
         for (i = 0; i < rows_length; ++i) {
-            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+            for (ii = 0; subParam = this->provider(ii, i); ++ii) {
                 size += subParam->loadValue(addr + size);
                 delete subParam;
             }
@@ -497,13 +485,13 @@ public:
         size_t size = 0;
         uint8_t ii;
         unsigned int i;
-        unsigned int rows_length = *this->var->rows_length;
+        unsigned int rows_length = *this->rows_length;
         XxxParam* subParam;
 
-        size += EEPROM_put(addr, this->var->rows_length);
+        size += EEPROM_put(addr, this->rows_length);
 
         for (i = 0; i < rows_length; ++i) {
-            for (ii = 0; subParam = this->var->provider(ii, i); ++ii) {
+            for (ii = 0; subParam = this->provider(ii, i); ++ii) {
                 size += subParam->saveValue(addr + size);
                 delete subParam;
             }
@@ -516,14 +504,12 @@ public:
 XxxParam* createXxxTableParam(PGM_P name, void* var, unsigned int* rows_length, size_t row_size, XxxParamTable_provider_fn* provider) {
     hasTables = true;
 
-    XxxParamTable* table = new XxxParamTable(rows_length);
-    table->var = var;
-    table->row_size = row_size;
-    table->provider = provider;
-
     auto param = new XxxParam_TABLE();
     param->name = name;
-    param->var = table;
+    param->var = var;
+    param->rows_length = rows_length;
+    param->row_size = row_size;
+    param->provider = provider;
 
     return param;
 }
@@ -716,9 +702,7 @@ public:
             return;
         }
 
-        XxxParamTable* table = param->var;
-
-        if (row_index < 0 || row_index > *table->rows_length) {
+        if (row_index < 0 || row_index > *param->rows_length) {
             Serial.print(F("Error: index "));
             Serial.print(row_index);
             Serial.println(F(" is invalid."));
@@ -727,28 +711,28 @@ public:
         }
 
         if (
-            !table->hasSubParam(args_len - 2, 0)
-            || table->hasSubParam(args_len - 1, 0)
+            !param->hasSubParam(args_len - 2, 0)
+            || param->hasSubParam(args_len - 1, 0)
         ) {
             Serial.print(F("Error: invalid args count."));
             delete param;
             return;
         }
 
-        if (row_index < *table->rows_length) {
+        if (row_index < *param->rows_length) {
             memmove(
-                table->var + table->row_size * (row_index + 1),
-                table->var + table->row_size * row_index,
-                table->row_size * (*table->rows_length - row_index)
+                param->var + param->row_size * (row_index + 1),
+                param->var + param->row_size * row_index,
+                param->row_size * (*param->rows_length - row_index)
             );
         }
-        ++*table->rows_length;
+        ++*param->rows_length;
 
         XxxParam* subParam;
         int col_index;
         for (int i = 1; i < args_len; ++i) {
             col_index = i - 1;
-            subParam = table->provider(col_index, row_index);
+            subParam = param->provider(col_index, row_index);
             subParam->setValue(args[i]);
             delete subParam;
         }
@@ -771,9 +755,7 @@ class CmdDelete : public XXX_CmdAbstract {
             return;
         }
 
-        XxxParamTable* table = param->var;
-
-        if (row_index < 0 || row_index > *table->rows_length - 1) {
+        if (row_index < 0 || row_index > *param->rows_length - 1) {
             Serial.print(F("Error: index "));
             Serial.print(row_index);
             Serial.println(F(" is invalid."));
@@ -782,11 +764,11 @@ class CmdDelete : public XXX_CmdAbstract {
         }
 
         memmove(
-            table->var + table->row_size * row_index,
-            table->var + table->row_size * (row_index + 1),
-            table->row_size * (*table->rows_length - row_index - 1)
+            param->var + param->row_size * row_index,
+            param->var + param->row_size * (row_index + 1),
+            param->row_size * (*param->rows_length - row_index - 1)
         );
-        --*table->rows_length;
+        --*param->rows_length;
 
         Serial.println(F("OK"));
         delete param;
