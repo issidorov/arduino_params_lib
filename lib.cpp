@@ -763,12 +763,12 @@ class CmdDelete : public XXX_CmdAbstract {
             return;
         }
 
+        --*param->rows_length;
         memmove(
             param->var + param->row_size * row_index,
             param->var + param->row_size * (row_index + 1),
-            param->row_size * (*param->rows_length - row_index - 1)
+            param->row_size * (*param->rows_length - row_index)
         );
-        --*param->rows_length;
 
         Serial.println(F("OK"));
         delete param;
